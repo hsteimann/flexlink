@@ -1,0 +1,6 @@
+id,name,email,country_code,status
+1,John Doe,john@example.com,US,active
+2,Jane Smith,jane@example.com,UK,active
+3,Bob Johnson,bob@example.com,DE,inactive
+4,Alice Williams,alice@example.com,FR,active
+5,Charlie Brown,charlie@example.com,CA,pending

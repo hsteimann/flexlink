@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "country_code": "US",
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "country_code": "UK",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "name": "Bob Johnson",
+    "email": "bob@example.com",
+    "country_code": "DE",
+    "status": "inactive"
+  },
+  {
+    "id": 4,
+    "name": "Alice Williams",
+    "email": "alice@example.com",
+    "country_code": "FR",
+    "status": "active"
+  },
+  {
+    "id": 5,
+    "name": "Charlie Brown",
+    "email": "charlie@example.com",
+    "country_code": "CA",
+    "status": "pending"
+  }
+]

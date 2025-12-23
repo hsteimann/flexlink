@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+  <row>
+    <id>1</id>
+    <name>John Doe</name>
+    <email>john@example.com</email>
+    <country_code>US</country_code>
+    <status>active</status>
+  </row>
+  <row>
+    <id>2</id>
+    <name>Jane Smith</name>
+    <email>jane@example.com</email>
+    <country_code>UK</country_code>
+    <status>active</status>
+  </row>
+  <row>
+    <id>3</id>
+    <name>Bob Johnson</name>
+    <email>bob@example.com</email>
+    <country_code>DE</country_code>
+    <status>inactive</status>
+  </row>
+  <row>
+    <id>4</id>
+    <name>Alice Williams</name>
+    <email>alice@example.com</email>
+    <country_code>FR</country_code>
+    <status>active</status>
+  </row>
+  <row>
+    <id>5</id>
+    <name>Charlie Brown</name>
+    <email>charlie@example.com</email>
+    <country_code>CA</country_code>
+    <status>pending</status>
+  </row>
+</data>
