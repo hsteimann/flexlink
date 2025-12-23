@@ -197,10 +197,11 @@ async def test_no_retry_on_4xx_errors(http_client, rest_config):
         return_value=httpx.Response(404, json={"error": "Not found"})
     )
 
-    with pytest.raises(httpx.HTTPStatusError) as exc_info:
-        await connector.send_request("GET", "/notfound")
+    response = await connector.send_request("GET", "/notfound")
 
-    assert exc_info.value.response.status_code == 404
+    # Should return error response without retry
+    assert response.status_code == 404
+    assert response.error is not None
     assert mock_route.call_count == 1  # Only one attempt, no retry
 
 

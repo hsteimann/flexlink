@@ -179,8 +179,12 @@ async def test_file_size_validation_process(file_connector):
     # Create 11MB file (exceeds 10MB limit)
     large_file = b"x" * (11 * 1024 * 1024)
 
-    with pytest.raises(ValueError, match="exceeds maximum"):
-        await file_connector.process_file(large_file, FileFormat.CSV)
+    result = await file_connector.process_file(large_file, FileFormat.CSV)
+
+    # Should return failed result with error message
+    assert result.success is False
+    assert len(result.errors) > 0
+    assert "exceeds maximum" in result.errors[0]
 
 
 @pytest.mark.asyncio

@@ -53,12 +53,14 @@ class RestConnector(BaseConnector):
             **kwargs: Additional request parameters (headers, params, etc.)
 
         Returns:
-            IntegrationResponse with status code, headers, and body
+            IntegrationResponse with status code, headers, body, and error (if any).
+            - 4xx errors: returned immediately without retry
+            - 5xx errors: retried with exponential backoff, then returned if all attempts fail
+            - Timeouts: retried with exponential backoff
 
         Raises:
-            httpx.HTTPStatusError: If request fails with 4xx error (no retry)
             httpx.TimeoutException: If all retry attempts timeout
-            Exception: If request fails after all retry attempts
+            Exception: If request fails with non-HTTP error after all retry attempts
         """
         # Build full URL
         url = f"{self.config.base_url}/{path.lstrip('/')}"
@@ -102,13 +104,19 @@ class RestConnector(BaseConnector):
                 )
 
             except httpx.HTTPStatusError as e:
-                # CRITICAL: Don't retry 4xx client errors
+                # CRITICAL: Don't retry 4xx client errors - return error response
                 if 400 <= e.response.status_code < 500:
                     self.logger.error(
                         f"Client error {e.response.status_code} for {method} {url}: "
                         f"{e.response.text}"
                     )
-                    raise
+                    # Return error response instead of raising
+                    return IntegrationResponse(
+                        status_code=e.response.status_code,
+                        headers=dict(e.response.headers),
+                        body=e.response.json() if e.response.content else None,
+                        error=e.response.text or str(e),
+                    )
 
                 # Retry on 5xx server errors
                 if attempt < self.config.retry_attempts - 1:
@@ -123,7 +131,13 @@ class RestConnector(BaseConnector):
                         f"Server error {e.response.status_code} after "
                         f"{self.config.retry_attempts} attempts: {e.response.text}"
                     )
-                    raise
+                    # Return error response instead of raising
+                    return IntegrationResponse(
+                        status_code=e.response.status_code,
+                        headers=dict(e.response.headers),
+                        body=e.response.json() if e.response.content else None,
+                        error=e.response.text or str(e),
+                    )
 
             except httpx.TimeoutException:
                 if attempt < self.config.retry_attempts - 1:

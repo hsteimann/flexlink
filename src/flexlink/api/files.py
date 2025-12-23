@@ -68,8 +68,24 @@ async def upload_file(
             target_format=target_format,
         )
 
+        # Check if processing failed
+        if not result.success:
+            # Distinguish between request errors and processing errors
+            # File size errors should return 400, other errors return 200 with success=False
+            if result.errors and any("File size" in error for error in result.errors):
+                error_detail = "; ".join(result.errors)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=error_detail,
+                )
+            # For other processing errors (parsing, validation), return the result
+            # with success=False so caller can see details
+
         return result
 
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

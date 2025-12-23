@@ -80,19 +80,36 @@ class FileConnector(BaseConnector):
 
         Returns:
             FileProcessingResult with processing details
-
-        Raises:
-            ValueError: If file size exceeds limit or parsing fails
         """
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        # Validate file is not empty
+        if len(file_content) == 0:
+            errors.append("File is empty")
+            return FileProcessingResult(
+                success=False,
+                records_processed=0,
+                output_format=source_format,
+                output_filename="",
+                errors=errors,
+                warnings=warnings,
+            )
+
         # Validate file size
         if len(file_content) > self.MAX_FILE_SIZE:
-            raise ValueError(
+            errors.append(
                 f"File size {len(file_content)} bytes exceeds maximum "
                 f"{self.MAX_FILE_SIZE} bytes (10MB)"
             )
-
-        errors: list[str] = []
-        warnings: list[str] = []
+            return FileProcessingResult(
+                success=False,
+                records_processed=0,
+                output_format=source_format,
+                output_filename="",
+                errors=errors,
+                warnings=warnings,
+            )
 
         try:
             # Parse source file

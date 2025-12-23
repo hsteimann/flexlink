@@ -115,11 +115,16 @@ class RequestRouter:
                     error=f"Request transformation failed: {e}"
                 )
 
+        # Extract path parameters and substitute in target path
+        target_path = self._substitute_path_params(
+            route_config.path, request.route, route_config.target_path
+        )
+
         # Send request to connector
         try:
             response = await connector.send_request(
                 method=request.method,
-                path=route_config.target_path,
+                path=target_path,
                 data=transformed_data,
                 headers=request.headers,
             )
@@ -192,6 +197,53 @@ class RequestRouter:
         # Try to match
         match = re.match(regex_pattern, path)
         return match is not None
+
+    def _substitute_path_params(
+        self, route_pattern: str, request_path: str, target_path: str
+    ) -> str:
+        """
+        Extract path parameters from request and substitute in target path.
+
+        Example:
+        - route_pattern: /users/{id}
+        - request_path: /users/123
+        - target_path: /api/users/{id}
+        - returns: /api/users/123
+
+        Args:
+            route_pattern: Route pattern with parameter placeholders
+            request_path: Actual request path with parameter values
+            target_path: Target path template to substitute parameters into
+
+        Returns:
+            Target path with parameters substituted
+        """
+        # Extract parameter names from route pattern
+        param_names = re.findall(r"\{([^}]+)\}", route_pattern)
+        if not param_names:
+            # No parameters to substitute
+            return target_path
+
+        # Create regex pattern to extract values
+        regex_pattern = re.sub(r"\{[^}]+\}", r"([^/]+)", route_pattern)
+        regex_pattern = f"^{regex_pattern}$"
+
+        # Extract parameter values from request path
+        match = re.match(regex_pattern, request_path)
+        if not match:
+            # No match, return target path as-is
+            return target_path
+
+        # Build parameter value map
+        param_values = match.groups()
+        param_map = dict(zip(param_names, param_values))
+
+        # Substitute parameters in target path
+        result = target_path
+        for param_name, param_value in param_map.items():
+            result = result.replace(f"{{{param_name}}}", param_value)
+
+        return result
 
     def list_routes(self) -> list[dict[str, str]]:
         """

@@ -32,9 +32,9 @@ class IntegrationResponse(BaseModel):
         default_factory=dict,
         description="Response headers"
     )
-    body: dict[str, Any] | None = Field(
+    body: dict[str, Any] | list[Any] | None = Field(
         default=None,
-        description="Response body data"
+        description="Response body data (dict or list)"
     )
     error: str | None = Field(
         default=None,
