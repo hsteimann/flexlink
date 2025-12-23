@@ -1,0 +1,35 @@
+{
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git",
+    ".venv",
+    "build",
+    "dist"
+  ],
+  "ignore": [
+    "**/tests"
+  ],
+  "defineConstant": {},
+  "stubPath": "typings",
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Darwin",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "executionEnvironments": [
+    {
+      "root": "src",
+      "pythonVersion": "3.12",
+      "pythonPlatform": "Darwin",
+      "extraPaths": [
+        "src"
+      ]
+    }
+  ]
+}
