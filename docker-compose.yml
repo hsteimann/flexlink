@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  flexlink:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flexlink-middleware
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount config directory for easy configuration updates
+      - ./config:/app/config:ro
+      # Mount data directories for persistence
+      - ./data/uploads:/app/data/uploads
+      - ./data/downloads:/app/data/downloads
+      - ./data/samples:/app/data/samples:ro
+    environment:
+      # Application settings
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      # File processing settings
+      - MAX_FILE_SIZE_MB=10
+      - UPLOAD_DIR=/app/data/uploads
+      - DOWNLOAD_DIR=/app/data/downloads
+      - TEMP_FILE_TTL_SECONDS=3600
+    networks:
+      - flexlink-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  flexlink-network:
+    driver: bridge
+
+# Optional: Add volume definitions for explicit volume management
+volumes:
+  flexlink-uploads:
+    driver: local
+  flexlink-downloads:
+    driver: local

@@ -1,0 +1,88 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.cover
+.hypothesis/
+
+# Type checking and linting
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation and development files
+PRPs/
+PRPs-agentic-eng-development/
+*.md
+!README.md
+EVALUATION-SUMMARY.md
+MVP-ENHANCEMENTS-*.md
+
+# Data directories (will be mounted as volumes)
+data/uploads/*
+data/downloads/*
+!data/samples/
+
+# Test files
+src/tests/
+test_*.py
+*_test.py
+conftest.py
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Docker files (don't need these inside the image)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Lock files (already copied explicitly)
+uv.lock
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# OS files
+Thumbs.db
