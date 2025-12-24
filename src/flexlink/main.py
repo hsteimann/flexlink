@@ -7,7 +7,7 @@ import httpx
 from fastapi import FastAPI
 
 from flexlink.api import dependencies, files, health, routes
-from flexlink.config import get_settings
+from flexlink.config import get_settings, load_route_configs
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
 from flexlink.middleware.error_handling import ErrorHandlingMiddleware
@@ -49,14 +49,13 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
     # Initialize connector registry
     registry = ConnectorRegistry()
-    config_dir = settings.config_dir / "connectors"
 
     # Create config directory if it doesn't exist
-    config_dir.mkdir(parents=True, exist_ok=True)
+    settings.config_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         await registry.load_connectors(
-            http_client=http_client, config_dir=config_dir
+            http_client=http_client, config_dir=settings.config_dir
         )
         logger.info(f"Loaded connectors: {registry.list_connectors()}")
     except Exception as e:
@@ -67,9 +66,14 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     router = RequestRouter(registry)
     logger.info("Request router initialized")
 
-    # TODO: Load route configurations from YAML files
-    # For now, router starts with no routes configured
-    # Routes can be added via API or configuration files
+    # Load route configurations from YAML files
+    try:
+        route_configs = load_route_configs(settings.config_dir)
+        router.add_routes(route_configs)
+        logger.info(f"Loaded {len(route_configs)} route configurations")
+    except Exception as e:
+        logger.warning(f"No routes loaded: {e}")
+        logger.info("Starting without routes (routes can be added via API)")
 
     # Set global dependencies
     dependencies.set_registry(registry)

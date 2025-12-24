@@ -1,0 +1,30 @@
+# PriceEdge API Routes Configuration
+# Real-world pricing operations for staging environment
+
+# REAL-WORLD EXAMPLE: Get suggested prices with filters (POST)
+- path: /pricing/suggested-prices
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+  transformations: []  # Pass through PriceEdge format as-is
+
+# Get item metadata
+- path: /pricing/items/metadata
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/item
+  transformations: []
+
+# Get current prices
+- path: /pricing/current-prices
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/Item_CurrentPrices
+  transformations: []
+
+# Get competitor prices
+- path: /pricing/competitor-prices
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/CompetitorPrices
+  transformations: []
