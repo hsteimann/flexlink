@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         logger.info("Starting without connectors (use /api/v1/connectors to check)")
 
     # Initialize request router
-    router = RequestRouter(registry)
+    router = RequestRouter(registry, config_dir=settings.config_dir)
     logger.info("Request router initialized")
 
     # Load route configurations from YAML files

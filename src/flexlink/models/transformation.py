@@ -34,3 +34,9 @@ class RouteConfig(BaseModel):
         default_factory=list,
         description="Response transformations applied before returning to client"
     )
+
+    # YAML Mapping Reference (Week 2 - Phase 2)
+    mapping_ref: str | None = Field(
+        default=None,
+        description="Reference to YAML mapping config (config/mappings/{name}.yaml)"
+    )

@@ -1005,6 +1005,133 @@ If a response transformation fails, the original response is returned and an err
 }
 ```
 
+## YAML Mapping Configurations (Phase 2 - Week 2)
+
+FlexLink supports declarative mapping configurations that separate transformation logic from route definitions.
+
+### Why YAML Mappings?
+
+- **Reusability**: Define transformations once, use in multiple routes
+- **Maintainability**: Change mappings without editing route configs
+- **Validation**: Enforce data quality before output
+- **Clarity**: Clear separation between routing (flow) and transformation (data)
+
+### Creating a Mapping Configuration
+
+Create mapping files in `config/mappings/`:
+
+```yaml
+# config/mappings/priceedge-standard.yaml
+name: priceedge-standard
+description: Standard mapping for PriceEdge suggested prices
+
+mappings:
+  # Extract nested data
+  - source_field: Data.data
+    target_field: items
+
+  # Transform field types
+  - source_field: Data.total
+    target_field: totalItems
+    transformation: int
+
+  - source_field: Data.page
+    target_field: currentPage
+    transformation: int
+
+# Data validation rules
+validation:
+  rules:
+    - field: items
+      required: true
+
+    - field: totalItems
+      type: int
+      min: 0
+      required: true
+
+    - field: currentPage
+      type: int
+      min: 1
+
+  on_validation_error: log_and_continue
+  log_errors: true
+```
+
+### Using Mappings in Routes
+
+Reference mappings in route configurations:
+
+```yaml
+# config/routes/priceedge_routes.yaml
+- path: /pricing/suggested-prices
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+  mapping_ref: priceedge-standard  # Reference to mapping config
+```
+
+### Validation Rules
+
+Supported validation types:
+
+| Validation | Description | Example |
+|------------|-------------|---------|
+| **Type** | Check field type | `type: int`, `type: string`, `type: date` |
+| **Range** | Validate numeric ranges | `min: 0`, `max: 999999` |
+| **Pattern** | Regex pattern matching | `pattern: "^[A-Z0-9-]+$"` |
+| **Required** | Require field presence | `required: true` |
+
+### Error Handling Strategies
+
+Configure how validation errors are handled:
+
+```yaml
+validation:
+  on_validation_error: fail_pipeline  # or skip_row, log_and_continue
+  log_errors: true
+```
+
+| Strategy | Behavior | Use Case |
+|----------|----------|----------|
+| **fail_pipeline** | Stop processing, return 400 error | Critical data - reject bad data |
+| **skip_row** | Skip invalid records, continue | Batch imports - process valid data |
+| **log_and_continue** | Log warning, don't fail | Monitoring - track issues |
+
+### Validation Example
+
+```yaml
+# config/mappings/product-import.yaml
+name: product-import
+description: Validate product data before database insert
+
+validation:
+  rules:
+    # SKU must be alphanumeric with hyphens
+    - field: sku
+      type: string
+      pattern: "^[A-Z0-9-]+$"
+      required: true
+      error_message: "SKU must be uppercase alphanumeric with hyphens"
+
+    # Price must be positive
+    - field: price
+      type: float
+      min: 0.01
+      max: 999999.99
+      required: true
+      error_message: "Price must be between $0.01 and $999,999.99"
+
+    # Quantity must be non-negative integer
+    - field: quantity
+      type: int
+      min: 0
+      required: true
+
+  on_validation_error: fail_pipeline
+  log_errors: true
+```
+
 ## Connector Development Guide
 
 ### Creating a Custom Connector

@@ -2,11 +2,15 @@
 
 import logging
 import re
+from pathlib import Path
 
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.transformation import TransformationEngine
+from flexlink.core.mapping_loader import load_mapping_config
+from flexlink.core.validator import Validator
 from flexlink.models.request import IntegrationRequest, IntegrationResponse
 from flexlink.models.transformation import RouteConfig
+from flexlink.models.mapping import mapping_rule_to_transformation_rule
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +23,17 @@ class RequestRouter:
     and forwards to target connectors.
     """
 
-    def __init__(self, registry: ConnectorRegistry):
+    def __init__(self, registry: ConnectorRegistry, config_dir: Path = Path("config")):
         """
         Initialize request router.
 
         Args:
             registry: ConnectorRegistry containing available connectors
+            config_dir: Configuration directory for loading mappings (default: config/)
         """
         self.registry = registry
         self.routes: list[RouteConfig] = []
+        self.config_dir = config_dir
 
     def add_route(self, route_config: RouteConfig) -> None:
         """
@@ -100,19 +106,81 @@ class RequestRouter:
 
         # Apply request transformations (route-level)
         transformed_data = request.body or {}
-        if route_config.transformations:
+
+        # Check if route uses mapping reference (Week 2 - Phase 2)
+        transformation_rules = route_config.transformations
+        validation_config = None
+
+        if route_config.mapping_ref:
             try:
-                engine = TransformationEngine(route_config.transformations)
+                # Load mapping configuration
+                mapping_config = load_mapping_config(route_config.mapping_ref, self.config_dir)
+
+                # Convert mapping rules to transformation rules
+                transformation_rules = []
+                for mapping_rule in mapping_config.mappings:
+                    trans_rule = mapping_rule_to_transformation_rule(mapping_rule)
+                    if trans_rule:
+                        transformation_rules.append(trans_rule)
+
+                # Get validation config
+                validation_config = mapping_config.validation
+
+                logger.debug(
+                    f"Loaded mapping '{route_config.mapping_ref}': "
+                    f"{len(transformation_rules)} rules, "
+                    f"validation={'enabled' if validation_config else 'disabled'}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to load mapping '{route_config.mapping_ref}': {e}")
+                return IntegrationResponse(
+                    status_code=500,
+                    error=f"Failed to load mapping configuration: {str(e)}"
+                )
+
+        # Apply transformations
+        if transformation_rules:
+            try:
+                engine = TransformationEngine(transformation_rules)
                 transformed_data = await engine.apply(transformed_data)
                 logger.debug(
-                    f"Applied {len(route_config.transformations)} "
-                    f"route-level transformations to request"
+                    f"Applied {len(transformation_rules)} "
+                    f"transformations to request"
                 )
             except ValueError as e:
                 logger.error(f"Request transformation failed: {e}")
                 return IntegrationResponse(
                     status_code=400,
                     error=f"Request transformation failed: {e}"
+                )
+
+        # Apply validation if configured (Week 2 - Phase 2)
+        if validation_config and transformed_data:
+            try:
+                validator = Validator(validation_config)
+                validation_result = await validator.validate(transformed_data)
+
+                if not validation_result.valid:
+                    # Handle validation errors based on strategy
+                    from flexlink.models.validation import ValidationErrorStrategy
+
+                    if validation_config.on_validation_error == ValidationErrorStrategy.FAIL_PIPELINE:
+                        error_messages = [e.message for e in validation_result.errors]
+                        return IntegrationResponse(
+                            status_code=400,
+                            error=f"Validation failed: {'; '.join(error_messages)}"
+                        )
+
+                    # For SKIP_ROW and LOG_AND_CONTINUE, we logged already, continue processing
+                    logger.info(
+                        f"Validation completed with {len(validation_result.errors)} errors "
+                        f"(strategy: {validation_config.on_validation_error})"
+                    )
+            except Exception as e:
+                logger.error(f"Validation failed: {e}")
+                return IntegrationResponse(
+                    status_code=500,
+                    error=f"Validation error: {str(e)}"
                 )
 
         # Apply connector-specific request transformations

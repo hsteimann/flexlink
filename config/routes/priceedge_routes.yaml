@@ -18,16 +18,16 @@
   connector: priceedge
   target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
   transformations: []  # Request transformations
-  response_transformations:  # Response transformations (Week 1 - Phase 2)
-    # Extract nested data array to top-level "items"
-    - source_field: Data.data
-      target_field: items
-    # Flatten total count
-    - source_field: Data.total
-      target_field: totalItems
-    # Example: Additional transformations can be added here
-    # - source_field: Data.page
-    #   target_field: currentPage
+
+  # Week 2 - Phase 2: Use mapping reference instead of inline transformations
+  mapping_ref: priceedge-standard
+
+  # OLD (Week 1 - Phase 2): Inline response transformations
+  # response_transformations:
+  #   - source_field: Data.data
+  #     target_field: items
+  #   - source_field: Data.total
+  #     target_field: totalItems
 
 # ========================================
 # Item Metadata
