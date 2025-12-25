@@ -37,7 +37,7 @@ headers:
 
   # Additional settings
   auto_create_table: false  # Never auto-create in production
-  ssl_enabled: true
+  ssl_enabled: false  # Set to true for production with SSL-enabled PostgreSQL
 
 timeout: 30
 retry_attempts: 1  # Database writes typically don't retry

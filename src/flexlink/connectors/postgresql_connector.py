@@ -55,7 +55,9 @@ class PostgreSQLConnector(DatabaseConnector):
             # Build connection string with SSL settings
             conninfo = self.db_config.connection_string
             if self.db_config.ssl_enabled and "sslmode" not in conninfo:
-                conninfo += " sslmode=require"
+                # Add sslmode as URL parameter
+                separator = "?" if "?" not in conninfo else "&"
+                conninfo += f"{separator}sslmode=require"
 
             self.pool = AsyncConnectionPool(
                 conninfo=conninfo,
