@@ -93,6 +93,7 @@ class ConnectorRegistry:
         type_mapping = {
             "rest": "flexlink.connectors.rest_connector.RestConnector",
             "file": "flexlink.connectors.file_connector.FileConnector",
+            "postgresql": "flexlink.connectors.postgresql_connector.PostgreSQLConnector",
         }
 
         # Get the module path for this connector type
@@ -116,6 +117,15 @@ class ConnectorRegistry:
                 if http_client is None:
                     raise ValueError("HTTP client required for REST connectors")
                 connector = connector_class(config, http_client)
+            elif connector_type == "postgresql":
+                # Database connectors need DatabaseConnectorConfig
+                # Load from connector config's headers field (temporary storage)
+                from flexlink.models.database import DatabaseConnectorConfig
+                db_config = DatabaseConnectorConfig.model_validate(config.headers)
+                connector = connector_class(config, db_config)
+                # Initialize connection pool (database connectors only)
+                if hasattr(connector, 'initialize_pool'):
+                    await connector.initialize_pool()
             else:
                 connector = connector_class(config)
 

@@ -1,0 +1,44 @@
+# PostgreSQL Database Connector Configuration
+# Writes validated data to PostgreSQL database
+
+name: postgres
+type: postgresql
+base_url: ""  # Not used for database connectors
+
+auth:
+  type: none  # Authentication via connection string
+  credentials: {}
+
+# Database configuration (stored in headers temporarily)
+headers:
+  # Connection settings
+  connection_string: ${POSTGRES_CONNECTION_STRING}  # postgresql://user:pass@host:port/dbname
+  database_type: postgresql
+  table_name: ${POSTGRES_TABLE_NAME}  # Target table
+  schema_name: public  # PostgreSQL schema (optional)
+
+  # Operation settings
+  default_operation: insert
+  conflict_columns: ["id"]  # For UPSERT (future)
+
+  # Connection pool
+  pool:
+    min_size: 2
+    max_size: 10
+    timeout_seconds: 30.0
+    max_idle_seconds: 300.0
+
+  # Batch settings (not used in v0.3.0 simplified version)
+  batch:
+    enabled: false  # Disabled for simplified version
+    size: 1000
+    timeout_seconds: 5.0
+    use_copy: false
+
+  # Additional settings
+  auto_create_table: false  # Never auto-create in production
+  ssl_enabled: true
+
+timeout: 30
+retry_attempts: 1  # Database writes typically don't retry
+enabled: true
