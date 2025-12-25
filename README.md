@@ -4,7 +4,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-194%20passing-brightgreen.svg)](./src/tests/)
+[![Tests](https://img.shields.io/badge/tests-270%20passing-brightgreen.svg)](./src/tests/)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](./src/tests/)
 
 ## Overview
@@ -15,14 +15,31 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 
 - **REST API Integration**: Generic REST connector supporting multiple authentication methods (Bearer, Basic, API Key, OAuth2)
 - **File Processing**: Native support for CSV, JSON, and XML formats with seamless conversion
+- **File-to-REST Pipeline**: Parse files and forward records through transformation pipeline to REST APIs
+- **File Persistence**: Async upload/download with temporary file storage and TTL management
 - **Data Transformation**: Field mapping, type conversions, nested field access, default values
 - **Request Routing**: Pattern-based routing with path parameters and wildcard support
+- **Batch Ingestion**: Upload files → Transform records → Forward to REST connectors (individual or batch mode)
 - **Extensible Architecture**: Plugin-based connector system for easy integration additions
-- **Production Ready**: 257 tests (100% pass rate), comprehensive error handling, async-first design
+- **Production Ready**: 270 tests (100% pass rate), comprehensive error handling, async-first design
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 
 ### Recent Improvements
+
+**v0.2.2 - File-to-REST Integration** (December 2024)
+- ✅ **File-to-REST Pipeline**: New `/api/v1/files/forward` endpoint bridges file processing with routing/transformation pipeline
+- ✅ **Batch Ingestion Workflows**: Parse files (CSV/JSON/XML) → Apply transformations → Forward to REST APIs
+- ✅ **Dual Forwarding Modes**: Individual (one request per record) or batch (all records in one request)
+- ✅ **Transformation Integration**: File records flow through route-level and connector-level transformations
+- ✅ **270 Tests**: Added 5 comprehensive tests for file-to-REST forwarding with transformations
+
+**v0.2.1 - File Persistence & Async Download** (December 2024)
+- ✅ **Async File Processing**: Upload endpoint now saves processed files for later download (default behavior)
+- ✅ **Download Persistence**: New `GET /api/v1/files/download/{file_id}` endpoint for async file retrieval
+- ✅ **File TTL Management**: Automatic 24-hour retention with cleanup endpoint for expired files
+- ✅ **Flexible Upload Modes**: Choose between async download, validation only, or immediate file return
+- ✅ **265 Tests**: Added 8 new tests for download persistence and cleanup functionality
 
 **v0.2.0 - Architectural Enhancements** (December 2024)
 - ✅ **HTTP Status Code Propagation**: Proper REST semantics with accurate status codes (404, 500, etc.)
@@ -38,9 +55,12 @@ See [CHANGELOG.md](./CHANGELOG.md) for detailed version history.
 
 - **System Integration**: Connect legacy systems to modern APIs
 - **Data Migration**: Convert between file formats (CSV ↔ JSON ↔ XML)
+- **File-based ETL**: Upload CSV/JSON/XML files → Apply transformations → POST to REST APIs
+- **Batch Import Workflows**: Parse files and forward records through routing pipeline to external systems
 - **API Gateway**: Centralize authentication and routing for microservices
-- **Batch Processing**: Handle file-based integrations with transformation
-- **B2B Integration**: Exchange data with partners in multiple formats
+- **Async File Processing**: Upload files for processing, download results later via download URLs
+- **Legacy Data Migration**: Parse legacy file formats → Map fields → Load via REST endpoints
+- **B2B Integration**: Exchange data with partners in multiple formats (files ↔ REST APIs)
 
 ## Architecture
 
@@ -126,11 +146,42 @@ This enables:
 - Legacy system compatibility (e.g., SCREAMING_SNAKE_CASE → snake_case)
 
 #### 4. **File Processing Pipeline**
-Files are fully processed and can be:
-- **Validated**: Check format and structure, return metadata
+Files are fully processed with multiple workflow options:
+- **Validated**: Check format and structure, return metadata with record counts
 - **Converted**: Transform between formats (CSV ↔ JSON ↔ XML)
+- **Persisted**: Save processed files for async download (24-hour TTL)
 - **Downloaded**: Return processed file content immediately
-- **Forwarded**: (Planned) Send to another connector for integration
+- **Forwarded**: Parse and route through transformation pipeline to REST connectors
+
+#### 5. **File-to-REST Integration**
+Files seamlessly integrate with the routing/transformation pipeline:
+
+```
+File Upload (CSV/JSON/XML)
+    ↓
+Parse to Records (list of dicts)
+    ↓
+For Each Record (or Batch):
+    ↓
+Route-Level Request Transformations
+    ↓
+Connector-Specific Request Transformations
+    ↓
+Forward to Target REST Connector
+    ↓
+Aggregate Results & Statistics
+    ↓
+Return Summary (success/failure counts)
+```
+
+**Dual Forwarding Modes:**
+- **Individual Mode**: One HTTP request per record (e.g., POST each customer)
+- **Batch Mode**: All records in one request as `{"records": [...]}` array
+
+This architecture enables:
+- File-based ETL workflows with transformation
+- Batch import from legacy systems to modern REST APIs
+- Unified transformation pipeline for both file and REST data sources
 
 ## Quick Start
 
@@ -344,17 +395,37 @@ List all configured routes.
 
 #### POST /api/v1/files/upload
 
-Upload and process a file with optional format conversion and file return.
+Upload and process a file with optional format conversion, file persistence, and immediate return.
 
 **Parameters:**
 - `file` (required): File to upload (multipart/form-data)
 - `source_format` (required): Source file format (csv, json, xml)
 - `target_format` (optional): Convert to this format
-- `return_file` (optional): If `true`, returns file content; if `false` (default), returns metadata only
+- `save_file` (optional, default=true): Save processed file for async download
+- `return_file` (optional, default=false): Return file content immediately
 
-**Example 1: Validate and get metadata (default)**
+**Example 1: Async upload for later download (default)**
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv" \
+curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json" \
+  -F "file=@data.csv"
+```
+
+**Response (JSON):**
+```json
+{
+  "success": true,
+  "records_processed": 100,
+  "output_format": "json",
+  "output_filename": "processed.json",
+  "download_url": "/api/v1/files/download/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "errors": [],
+  "warnings": []
+}
+```
+
+**Example 2: Validation only (no persistence)**
+```bash
+curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&save_file=false" \
   -F "file=@data.csv"
 ```
 
@@ -365,12 +436,13 @@ curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv" \
   "records_processed": 100,
   "output_format": "csv",
   "output_filename": "processed.csv",
+  "download_url": null,
   "errors": [],
   "warnings": []
 }
 ```
 
-**Example 2: Convert and download file**
+**Example 3: Immediate file return**
 ```bash
 curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json&return_file=true" \
   -F "file=@data.csv" \
@@ -380,9 +452,143 @@ curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target
 **Response:** File content (application/octet-stream) with `Content-Disposition: attachment` header.
 
 **Use Cases:**
-- **Validation Only**: Upload without `return_file` to validate format and get record count
-- **Conversion**: Upload with `target_format` and `return_file=true` to convert and download
+- **Async Processing** (default): Upload → Get download_url → Download later (enables async file pickup)
+- **Validation Only**: Upload with `save_file=false` to validate format and get record count
+- **Immediate Download**: Upload with `return_file=true` to convert and download immediately
 - **ETL Pipeline**: Parse → Transform → Export in one API call
+
+#### GET /api/v1/files/download/{file_id}
+
+Download a previously uploaded and processed file.
+
+**Parameters:**
+- `file_id` (required): UUID from the `download_url` returned by upload endpoint
+
+**Example:**
+```bash
+# Use download_url from upload response
+curl -X GET "http://localhost:8000/api/v1/files/download/a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
+  -o processed.json
+```
+
+**Response:** File content with appropriate Content-Type header (text/csv, application/json, or application/xml).
+
+**Notes:**
+- Files are stored temporarily (default: 24 hours)
+- Returns `404 Not Found` if file doesn't exist or has expired
+- Returns `400 Bad Request` if file_id format is invalid
+
+#### DELETE /api/v1/files/cleanup
+
+Remove expired temporary files (older than 24 hours).
+
+**Example:**
+```bash
+curl -X DELETE "http://localhost:8000/api/v1/files/cleanup"
+```
+
+**Response:**
+```json
+{
+  "deleted_files": 3
+}
+```
+
+**Notes:**
+- This endpoint can be called manually or automated via cron/scheduler
+- Removes files older than `DEFAULT_FILE_TTL_HOURS` (24 hours)
+- Safe to call repeatedly - only deletes expired files
+
+#### POST /api/v1/files/forward
+
+**Parse file and forward records through the routing/transformation pipeline.**
+
+This endpoint bridges file processing with the REST connector pipeline, enabling batch ingestion workflows where file data is parsed, transformed, and forwarded to REST APIs.
+
+**Workflow:**
+1. Parse file into records (CSV/JSON/XML → list of dicts)
+2. For each record (or batch):
+   - Create IntegrationRequest
+   - Route through RequestRouter (applies route-level and connector transformations)
+   - Forward to target REST connector
+3. Aggregate and return results
+
+**Parameters:**
+- `file` (required): File to upload and parse
+- `source_format` (required): Source file format (csv, json, xml)
+- `target_route` (required): Route configured in routing (e.g., "/users")
+- `target_method` (optional, default="POST"): HTTP method (POST, PUT, PATCH)
+- `batch_mode` (optional, default="individual"): Forwarding mode
+  - `individual`: One request per record
+  - `batch`: All records in one request (wrapped in `{"records": [...]}`  object)
+
+**Example 1: Individual mode - POST each record separately**
+```bash
+# Upload CSV and POST each customer to REST API
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/customers&batch_mode=individual" \
+  -F "file=@customers.csv"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "records_parsed": 100,
+  "records_forwarded": 98,
+  "records_failed": 2,
+  "batch_mode": "individual",
+  "target_route": "/customers",
+  "responses": [
+    {"status_code": 201, "count": 98},
+    {"status_code": 400, "count": 2}
+  ],
+  "errors": [
+    "Record 45 failed with status 400: Invalid email format",
+    "Record 87 failed with status 400: Missing required field"
+  ]
+}
+```
+
+**Example 2: Batch mode - POST all records in one request**
+```bash
+# Upload JSON and send all records in a single batch
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=json&target_route=/batch/import&batch_mode=batch" \
+  -F "file=@products.json"
+```
+
+**Use Cases:**
+- **File-based ETL**: Upload CSV → Transform fields → POST to REST API
+- **Batch Import**: Upload JSON/XML → Route through transformations → Forward to external system
+- **Data Migration**: Parse legacy files → Apply field mapping → Load via REST endpoints
+- **File ↔ REST Bridge**: Connect file-based systems with REST APIs through transformation pipeline
+
+**Integration with Transformations:**
+- File records automatically flow through route-level transformations configured in `config/routes/`
+- Connector-specific transformations are also applied
+- Same transformation pipeline as regular REST requests
+
+**Example with Transformations:**
+```yaml
+# config/routes/example_routes.yaml
+routes:
+  - path: "/users"
+    method: POST
+    connector: my_api
+    target_path: "/api/v1/users"
+    transformations:
+      - source_field: "name"
+        target_field: "full_name"
+        transformation: "upper"
+      - source_field: "email"
+        target_field: "email_address"
+        transformation: "lower"
+```
+
+```bash
+# File records will have transformations applied before forwarding
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/users" \
+  -F "file=@users.csv"
+```
 
 #### POST /api/v1/files/convert
 
@@ -491,13 +697,103 @@ curl -X POST http://localhost:8000/api/v1/files/convert \
   --output products.csv
 ```
 
-### File Upload with Processing
+### File Upload with Async Download
 
 ```bash
-# Upload file for processing (validation, transformation)
-curl -X POST http://localhost:8000/api/v1/files/upload \
-  -F "file=@orders.json" \
-  -F "format=json"
+# Upload file for processing and get download URL
+curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json" \
+  -F "file=@customers.csv"
+
+# Response includes download_url:
+# {
+#   "success": true,
+#   "records_processed": 100,
+#   "download_url": "/api/v1/files/download/a1b2c3d4-..."
+# }
+
+# Download the processed file later
+curl -X GET "http://localhost:8000/api/v1/files/download/a1b2c3d4-..." \
+  -o processed.json
+```
+
+### File-to-REST Integration
+
+**Example 1: Upload CSV and POST each record to REST API**
+
+First, configure a route in `config/routes/customers_routes.yaml`:
+```yaml
+routes:
+  - path: "/customers"
+    method: POST
+    connector: my_api
+    target_path: "/api/v1/customers"
+    transformations:
+      - source_field: "name"
+        target_field: "full_name"
+        transformation: "upper"
+      - source_field: "email"
+        target_field: "email_address"
+        transformation: "lower"
+```
+
+Then forward file records through the routing pipeline:
+```bash
+# Upload CSV and forward each customer to REST API (individual mode)
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/customers&batch_mode=individual" \
+  -F "file=@customers.csv"
+
+# Input: customers.csv
+# name,email,country
+# john smith,JOHN@TEST.COM,US
+# jane doe,JANE@TEST.COM,UK
+
+# Each record is transformed and POSTed individually:
+# POST /api/v1/customers {"full_name": "JOHN SMITH", "email_address": "john@test.com", "country": "US"}
+# POST /api/v1/customers {"full_name": "JANE DOE", "email_address": "jane@test.com", "country": "UK"}
+
+# Response:
+# {
+#   "success": true,
+#   "records_parsed": 2,
+#   "records_forwarded": 2,
+#   "records_failed": 0,
+#   "responses": [{"status_code": 201, "count": 2}]
+# }
+```
+
+**Example 2: Batch mode - Send all records in one request**
+
+```bash
+# Upload JSON and forward all records as a batch
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=json&target_route=/batch/import&batch_mode=batch" \
+  -F "file=@products.json"
+
+# All records are sent in a single request:
+# POST /api/batch/import {"records": [{"id": 1, ...}, {"id": 2, ...}, ...]}
+
+# Response:
+# {
+#   "success": true,
+#   "records_parsed": 100,
+#   "records_forwarded": 100,
+#   "records_failed": 0,
+#   "batch_mode": "batch"
+# }
+```
+
+**Example 3: File-based ETL with transformations**
+
+```bash
+# Parse legacy XML → Transform fields → Load to modern REST API
+curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=xml&target_route=/legacy/migrate" \
+  -F "file=@legacy_data.xml"
+
+# Workflow:
+# 1. Parse XML to records
+# 2. Apply route-level transformations (field mapping, type conversion)
+# 3. Apply connector-specific transformations (system quirks)
+# 4. POST each record to REST API
+# 5. Return aggregated statistics
 ```
 
 ### Supported Format Conversions

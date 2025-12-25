@@ -57,3 +57,22 @@ class FileProcessingResult(BaseModel):
         default_factory=list,
         description="List of warnings during processing"
     )
+
+
+class FileForwardResult(BaseModel):
+    """Result of file-to-REST forwarding operation."""
+
+    success: bool = Field(..., description="Whether forwarding succeeded")
+    records_parsed: int = Field(..., description="Number of records parsed from file")
+    records_forwarded: int = Field(..., description="Number of records successfully forwarded")
+    records_failed: int = Field(..., description="Number of records that failed to forward")
+    batch_mode: str = Field(..., description="Forwarding mode used (individual or batch)")
+    target_route: str = Field(..., description="Target route for forwarding")
+    responses: list[dict] = Field(
+        default_factory=list,
+        description="Summary of responses (status codes and counts)"
+    )
+    errors: list[str] = Field(
+        default_factory=list,
+        description="List of errors encountered during forwarding"
+    )

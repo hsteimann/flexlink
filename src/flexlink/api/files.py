@@ -1,13 +1,27 @@
 """File upload and download API routes."""
 
 import io
+import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse, StreamingResponse
 
+from flexlink.api.dependencies import get_router
 from flexlink.connectors.file_connector import FileConnector
+from flexlink.core.router import RequestRouter
 from flexlink.models.connector import AuthConfig, ConnectorConfig
-from flexlink.models.file import FileFormat, FileProcessingResult
+from flexlink.models.file import FileFormat, FileForwardResult, FileProcessingResult
+from flexlink.models.request import IntegrationRequest
+
+# File storage configuration
+DOWNLOADS_DIR = Path("data/downloads")
+DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Default TTL for downloaded files (24 hours)
+DEFAULT_FILE_TTL_HOURS = 24
 
 router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
@@ -38,6 +52,9 @@ async def upload_file(
     return_file: bool = Query(
         False, description="Return the processed file content instead of just metadata"
     ),
+    save_file: bool = Query(
+        True, description="Save processed file for later download (creates download_url)"
+    ),
 ):
     """
     Upload and process a file.
@@ -46,18 +63,20 @@ async def upload_file(
     - Validates file size (max 10MB)
     - Parses file in source format (CSV, JSON, XML)
     - Optionally converts to target format
+    - Saves processed file for async download (default)
     - Returns processing results with record count
-    - Optionally returns the processed file content
+    - Optionally returns the processed file content immediately
 
     Args:
         file: Uploaded file
         source_format: Source file format (csv, json, xml)
         target_format: Optional target format for conversion
-        return_file: If True, returns file content; if False, returns metadata only
+        return_file: If True, returns file content immediately; if False, returns metadata
+        save_file: If True (default), saves file and returns download_url
 
     Returns:
         StreamingResponse with file content if return_file=True,
-        FileProcessingResult (JSON) if return_file=False
+        FileProcessingResult (JSON) with download_url if save_file=True
 
     Raises:
         HTTPException: If file processing fails
@@ -88,7 +107,21 @@ async def upload_file(
             # with success=False so caller can see details
             return result
 
-        # Return file content if requested
+        # Save file for later download if requested
+        if save_file and output_content:
+            # Generate unique file ID
+            file_id = str(uuid.uuid4())
+            file_extension = result.output_format.value
+            saved_filename = f"{file_id}.{file_extension}"
+            file_path = DOWNLOADS_DIR / saved_filename
+
+            # Write file to disk
+            file_path.write_bytes(output_content)
+
+            # Set download URL
+            result.download_url = f"/api/v1/files/download/{file_id}"
+
+        # Return file content immediately if requested
         if return_file and output_content:
             return StreamingResponse(
                 io.BytesIO(output_content),
@@ -98,7 +131,7 @@ async def upload_file(
                 },
             )
 
-        # Otherwise return metadata
+        # Otherwise return metadata (with download_url if saved)
         return result
 
     except HTTPException:
@@ -178,6 +211,64 @@ async def convert_file(
         ) from e
 
 
+@router.get("/download/{file_id}")
+async def download_file(file_id: str) -> FileResponse:
+    """
+    Download a previously processed file.
+
+    Files are stored temporarily (default 24 hours) after upload processing.
+    Use the download_url from the upload response to retrieve files asynchronously.
+
+    Args:
+        file_id: UUID of the saved file (from download_url)
+
+    Returns:
+        FileResponse with the saved file
+
+    Raises:
+        HTTPException 404: If file not found or expired
+        HTTPException 400: If file_id format is invalid
+    """
+    try:
+        # Validate UUID format
+        uuid.UUID(file_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file ID format: {file_id}",
+        )
+
+    # Find file with any supported extension
+    file_path = None
+    for format in FileFormat:
+        candidate_path = DOWNLOADS_DIR / f"{file_id}.{format.value}"
+        if candidate_path.exists():
+            file_path = candidate_path
+            break
+
+    if not file_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"File not found: {file_id} (may have expired after {DEFAULT_FILE_TTL_HOURS} hours)",
+        )
+
+    # Determine media type based on extension
+    extension = file_path.suffix.lstrip(".")
+    media_type_map = {
+        "csv": "text/csv",
+        "json": "application/json",
+        "xml": "application/xml",
+    }
+    media_type = media_type_map.get(extension, "application/octet-stream")
+
+    # Return file
+    return FileResponse(
+        path=str(file_path),
+        media_type=media_type,
+        filename=file_path.name,
+    )
+
+
 @router.get("/formats")
 async def list_formats() -> dict[str, list[str]]:
     """
@@ -187,6 +278,190 @@ async def list_formats() -> dict[str, list[str]]:
         Dictionary with list of supported formats
     """
     return {"formats": [format.value for format in FileFormat]}
+
+
+@router.delete("/cleanup")
+async def cleanup_expired_files() -> dict[str, int]:
+    """
+    Clean up expired temporary files.
+
+    Removes files older than DEFAULT_FILE_TTL_HOURS (24 hours).
+    This endpoint can be called manually or automated via cron/scheduler.
+
+    Returns:
+        Dictionary with count of deleted files
+    """
+    deleted_count = 0
+    current_time = datetime.now()
+    expiry_threshold = current_time - timedelta(hours=DEFAULT_FILE_TTL_HOURS)
+
+    # Iterate through all files in downloads directory
+    for file_path in DOWNLOADS_DIR.iterdir():
+        if file_path.is_file():
+            # Check file modification time
+            file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+            if file_mtime < expiry_threshold:
+                file_path.unlink()
+                deleted_count += 1
+
+    return {"deleted_files": deleted_count}
+
+
+@router.post("/forward")
+async def forward_file_to_rest(
+    file: UploadFile = File(...),
+    source_format: FileFormat = Query(..., description="Source file format"),
+    target_route: str = Query(..., description="Target route to forward data to"),
+    target_method: str = Query(
+        "POST", description="HTTP method for forwarding (POST, PUT, PATCH)"
+    ),
+    batch_mode: str = Query(
+        "individual",
+        description="Forwarding mode: 'individual' (one request per record) or 'batch' (all records in one request)",
+    ),
+    request_router: RequestRouter = Depends(get_router),
+) -> FileForwardResult:
+    """
+    Parse file and forward records through the routing/transformation pipeline.
+
+    This endpoint bridges file processing with the REST connector pipeline,
+    enabling batch ingestion workflows where file data is parsed, transformed,
+    and forwarded to REST APIs.
+
+    **Workflow:**
+    1. Parse file into records (CSV/JSON/XML → list of dicts)
+    2. For each record (or batch):
+       - Create IntegrationRequest
+       - Route through RequestRouter (applies route-level and connector transformations)
+       - Forward to target REST connector
+    3. Aggregate and return results
+
+    **Example Use Cases:**
+    - Upload CSV of customers → Transform → POST each to /api/customers
+    - Upload JSON batch → Apply field mapping → Forward to external API
+    - File-based ETL: Parse → Transform → Load via REST
+
+    Args:
+        file: File to upload and parse
+        source_format: Source file format (csv, json, xml)
+        target_route: Route configured in routing (e.g., "/users")
+        target_method: HTTP method (POST, PUT, PATCH)
+        batch_mode: "individual" (one request per record) or "batch" (all records in one array)
+        request_router: RequestRouter instance (injected)
+
+    Returns:
+        FileForwardResult with aggregated forwarding statistics
+
+    Raises:
+        HTTPException: If file parsing or forwarding fails
+    """
+    errors: list[str] = []
+
+    try:
+        # Read file content
+        content = await file.read()
+
+        # Parse file into records
+        connector = get_file_connector()
+        records = await connector.parse_to_records(
+            file_content=content,
+            source_format=source_format,
+        )
+
+        records_parsed = len(records)
+
+        if records_parsed == 0:
+            return FileForwardResult(
+                success=False,
+                records_parsed=0,
+                records_forwarded=0,
+                records_failed=0,
+                batch_mode=batch_mode,
+                target_route=target_route,
+                responses=[],
+                errors=["No records found in file"],
+            )
+
+        # Forward records through router
+        records_forwarded = 0
+        records_failed = 0
+        response_summary: dict[int, int] = {}  # status_code -> count
+
+        if batch_mode == "batch":
+            # Forward all records in a single request
+            request = IntegrationRequest(
+                route=target_route,
+                method=target_method,
+                body={"records": records},  # Wrap in object with "records" key
+            )
+
+            response = await request_router.route_request(request)
+
+            if 200 <= response.status_code < 300:
+                records_forwarded = records_parsed
+            else:
+                records_failed = records_parsed
+                errors.append(
+                    f"Batch request failed with status {response.status_code}: "
+                    f"{response.error or 'Unknown error'}"
+                )
+
+            response_summary[response.status_code] = 1
+
+        else:  # individual mode
+            # Forward each record as a separate request
+            for idx, record in enumerate(records):
+                request = IntegrationRequest(
+                    route=target_route,
+                    method=target_method,
+                    body=record,
+                )
+
+                response = await request_router.route_request(request)
+
+                # Track response status
+                response_summary[response.status_code] = (
+                    response_summary.get(response.status_code, 0) + 1
+                )
+
+                if 200 <= response.status_code < 300:
+                    records_forwarded += 1
+                else:
+                    records_failed += 1
+                    errors.append(
+                        f"Record {idx + 1} failed with status {response.status_code}: "
+                        f"{response.error or 'Unknown error'}"
+                    )
+
+        # Build response summary
+        responses = [
+            {"status_code": status_code, "count": count}
+            for status_code, count in sorted(response_summary.items())
+        ]
+
+        success = records_failed == 0
+
+        return FileForwardResult(
+            success=success,
+            records_parsed=records_parsed,
+            records_forwarded=records_forwarded,
+            records_failed=records_failed,
+            batch_mode=batch_mode,
+            target_route=target_route,
+            responses=responses,
+            errors=errors[:10],  # Limit to first 10 errors
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File parsing failed: {str(e)}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Unexpected error: {str(e)}",
+        ) from e
 
 
 @router.get("/health")

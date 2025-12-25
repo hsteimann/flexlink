@@ -212,6 +212,55 @@ class FileConnector(BaseConnector):
 
         return output_content
 
+    async def parse_to_records(
+        self,
+        file_content: bytes,
+        source_format: FileFormat,
+    ) -> list[dict[str, Any]]:
+        """
+        Parse file into list of records (dictionaries).
+
+        This method enables file-to-REST integration by parsing files
+        into structured records that can be forwarded through the routing pipeline.
+
+        Args:
+            file_content: Raw file content as bytes
+            source_format: Source file format
+
+        Returns:
+            List of records as dictionaries
+
+        Raises:
+            ValueError: If file parsing fails or file is invalid
+        """
+        # Validate file is not empty
+        if len(file_content) == 0:
+            raise ValueError("File is empty")
+
+        # Validate file size
+        if len(file_content) > self.MAX_FILE_SIZE:
+            raise ValueError(
+                f"File size {len(file_content)} bytes exceeds maximum "
+                f"{self.MAX_FILE_SIZE} bytes (10MB)"
+            )
+
+        # Parse file
+        source_parser = self.parser_factory.get_parser(source_format)
+        df = await source_parser.parse(file_content)
+
+        # Convert DataFrame to list of dicts
+        # Note: to_dict returns list[dict[Hashable, Any]], we cast to list[dict[str, Any]]
+        records: list[dict[str, Any]] = [
+            {str(k): v for k, v in record.items()}
+            for record in df.to_dict(orient='records')
+        ]
+
+        logger.info(
+            f"Parsed {source_format.value} file into {len(records)} records"
+        )
+
+        return records
+
     async def transform_request(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform request data (default: no transformation for file connector).
