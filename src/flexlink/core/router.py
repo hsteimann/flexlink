@@ -132,6 +132,44 @@ class RequestRouter:
                 f"Request routed successfully: {route_config.connector} "
                 f"returned {response.status_code}"
             )
+
+            # Apply response transformations
+            if route_config.response_transformations and response.body is not None:
+                try:
+                    # Handle dict responses
+                    if isinstance(response.body, dict):
+                        engine = TransformationEngine(route_config.response_transformations)
+                        response.body = await engine.apply(response.body)
+                        logger.debug(
+                            f"Applied {len(route_config.response_transformations)} "
+                            f"transformations to response"
+                        )
+
+                    # Handle list responses - transform each item
+                    elif isinstance(response.body, list):
+                        engine = TransformationEngine(route_config.response_transformations)
+                        transformed_items = []
+                        for item in response.body:
+                            if isinstance(item, dict):
+                                transformed_item = await engine.apply(item)
+                                transformed_items.append(transformed_item)
+                            else:
+                                # Non-dict items pass through unchanged
+                                transformed_items.append(item)
+                        response.body = transformed_items
+                        logger.debug(
+                            f"Applied {len(route_config.response_transformations)} "
+                            f"transformations to {len(transformed_items)} response items"
+                        )
+
+                except Exception as e:
+                    # Log transformation error but don't fail the request
+                    logger.error(
+                        f"Response transformation failed for route {route_config.path}: {str(e)}",
+                        exc_info=True
+                    )
+                    # Return original response on transformation failure
+
             return response
         except Exception as e:
             logger.exception(f"Connector request failed: {e}")

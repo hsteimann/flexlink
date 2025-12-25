@@ -1,28 +1,82 @@
 # PriceEdge API Routes Configuration
 # Real-world pricing operations for staging environment
 
-# REAL-WORLD EXAMPLE: Get suggested prices with filters (POST)
+# ========================================
+# Suggested Prices
+# ========================================
+
+# Get suggested prices table schema/metadata (GET)
+- path: /pricing/suggested-prices/schema
+  method: GET
+  connector: priceedge
+  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+  transformations: []
+
+# Get suggested prices with filters (POST)
 - path: /pricing/suggested-prices
   method: POST
   connector: priceedge
   target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
-  transformations: []  # Pass through PriceEdge format as-is
+  transformations: []  # Request transformations
+  response_transformations:  # Response transformations (Week 1 - Phase 2)
+    # Extract nested data array to top-level "items"
+    - source_field: Data.data
+      target_field: items
+    # Flatten total count
+    - source_field: Data.total
+      target_field: totalItems
+    # Example: Additional transformations can be added here
+    # - source_field: Data.page
+    #   target_field: currentPage
 
-# Get item metadata
+# ========================================
+# Item Metadata
+# ========================================
+
+# Get item table schema/metadata (GET)
+- path: /pricing/items/metadata/schema
+  method: GET
+  connector: priceedge
+  target_path: /api/tables/item
+  transformations: []
+
+# Get item metadata with filters (POST)
 - path: /pricing/items/metadata
   method: POST
   connector: priceedge
   target_path: /api/tables/item
   transformations: []
 
-# Get current prices
+# ========================================
+# Current Prices
+# ========================================
+
+# Get current prices table schema/metadata (GET)
+- path: /pricing/current-prices/schema
+  method: GET
+  connector: priceedge
+  target_path: /api/tables/Item_CurrentPrices
+  transformations: []
+
+# Get current prices with filters (POST)
 - path: /pricing/current-prices
   method: POST
   connector: priceedge
   target_path: /api/tables/Item_CurrentPrices
   transformations: []
 
-# Get competitor prices
+# ========================================
+# Competitor Prices
+# ========================================
+
+# Get competitor prices table schema/metadata (GET)
+- path: /pricing/competitor-prices/schema
+  method: GET
+  connector: priceedge
+  target_path: /api/tables/CompetitorPrices
+  transformations: []
+
+# Get competitor prices with filters (POST)
 - path: /pricing/competitor-prices
   method: POST
   connector: priceedge

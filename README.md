@@ -427,6 +427,128 @@ transformations:
     default_value: "true"
 ```
 
+### Response Transformations
+
+FlexLink can transform API responses before returning them to clients. This is useful for:
+- Extracting nested data structures
+- Renaming fields to match your naming conventions
+- Converting data types
+- Flattening complex responses
+
+#### Configuration
+
+Add `response_transformations` to your route configuration:
+
+```yaml
+# config/routes/example.yaml
+- path: /api/users
+  connector: my_api
+  target_path: /users
+  transformations: []  # Request transformations
+  response_transformations:  # Response transformations (NEW)
+    # Extract nested user data
+    - source_field: data.users
+      target_field: users
+
+    # Rename fields
+    - source_field: users.firstName
+      target_field: users.first_name
+
+    # Convert types
+    - source_field: users.age
+      target_field: users.age
+      transformation: int
+```
+
+#### Supported Transformations
+
+- `upper` - Convert string to uppercase
+- `lower` - Convert string to lowercase
+- `strip` - Remove leading/trailing whitespace
+- `int` - Convert to integer
+- `float` - Convert to float
+- `bool` - Convert to boolean
+- `date_format` - Format date string
+- `str` - Convert to string
+
+#### Nested Field Access
+
+Use dot notation to access nested fields:
+
+```yaml
+response_transformations:
+  - source_field: response.data.items
+    target_field: items
+
+  - source_field: response.metadata.count
+    target_field: total
+```
+
+#### List Responses
+
+When the response is a list of objects, transformations are automatically applied to each item:
+
+```yaml
+# Response: [{"firstName": "John"}, {"firstName": "Jane"}]
+response_transformations:
+  - source_field: firstName
+    target_field: first_name
+
+# Result: [{"firstName": "John", "first_name": "John"}, {"firstName": "Jane", "first_name": "Jane"}]
+```
+
+**Note**: Transformations are **additive** - original fields are preserved alongside transformed fields.
+
+#### Error Handling
+
+If a response transformation fails, the original response is returned and an error is logged. This ensures that transformation errors don't break the integration.
+
+#### Example: PriceEdge Response Transformation
+
+```yaml
+# config/routes/priceedge_routes.yaml
+- path: /pricing/suggested-prices
+  method: POST
+  connector: priceedge
+  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+  transformations: []
+  response_transformations:
+    # Extract nested data array to top-level "items"
+    - source_field: Data.data
+      target_field: items
+    # Flatten total count
+    - source_field: Data.total
+      target_field: totalItems
+```
+
+**Before transformation:**
+```json
+{
+  "Data": {
+    "data": [
+      {"cd_ItemNumber": "ITEM001", "Value": 19.99},
+      {"cd_ItemNumber": "ITEM002", "Value": 29.99}
+    ],
+    "total": 2
+  }
+}
+```
+
+**After transformation:**
+```json
+{
+  "Data": {
+    "data": [...],
+    "total": 2
+  },
+  "items": [
+    {"cd_ItemNumber": "ITEM001", "Value": 19.99},
+    {"cd_ItemNumber": "ITEM002", "Value": 29.99}
+  ],
+  "totalItems": 2
+}
+```
+
 ## Connector Development Guide
 
 ### Creating a Custom Connector

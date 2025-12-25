@@ -28,5 +28,9 @@ class RouteConfig(BaseModel):
     target_path: str = Field(..., description="Target system path")
     transformations: list[TransformationRule] = Field(
         default_factory=list,
-        description="Request transformation rules"
+        description="Request transformations applied before sending to connector"
+    )
+    response_transformations: list[TransformationRule] = Field(
+        default_factory=list,
+        description="Response transformations applied before returning to client"
     )
