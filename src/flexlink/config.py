@@ -75,8 +75,8 @@ class Settings(BaseSettings):
         description="Directory for generated/downloaded files"
     )
     temp_file_ttl_seconds: int = Field(
-        default=3600,
-        description="Time to live for temporary files in seconds"
+        default=86400,  # 24 hours
+        description="Time to live for temporary files in seconds (default: 86400 = 24 hours)"
     )
 
     model_config = {

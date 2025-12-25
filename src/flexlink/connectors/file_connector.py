@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from flexlink.config import get_settings
 from flexlink.core.connector import BaseConnector
 from flexlink.models.connector import ConnectorConfig
 from flexlink.models.file import FileFormat, FileProcessingResult
@@ -23,9 +24,6 @@ class FileConnector(BaseConnector):
     - File generation in different formats
     """
 
-    # Maximum file size in bytes (10MB)
-    MAX_FILE_SIZE = 10 * 1024 * 1024
-
     def __init__(self, config: ConnectorConfig):
         """
         Initialize file connector.
@@ -35,6 +33,10 @@ class FileConnector(BaseConnector):
         """
         super().__init__(config)
         self.parser_factory = ParserFactory()
+
+        # Get max file size from settings (convert MB to bytes)
+        settings = get_settings()
+        self.max_file_size = settings.max_file_size_mb * 1024 * 1024
 
     async def send_request(
         self,
@@ -101,10 +103,11 @@ class FileConnector(BaseConnector):
             ), None
 
         # Validate file size
-        if len(file_content) > self.MAX_FILE_SIZE:
+        if len(file_content) > self.max_file_size:
+            max_mb = self.max_file_size / (1024 * 1024)
             errors.append(
                 f"File size {len(file_content)} bytes exceeds maximum "
-                f"{self.MAX_FILE_SIZE} bytes (10MB)"
+                f"{self.max_file_size} bytes ({max_mb:.0f}MB)"
             )
             return FileProcessingResult(
                 success=False,
@@ -182,10 +185,11 @@ class FileConnector(BaseConnector):
             ValueError: If conversion fails or file is invalid
         """
         # Validate file size
-        if len(file_content) > self.MAX_FILE_SIZE:
+        if len(file_content) > self.max_file_size:
+            max_mb = self.max_file_size / (1024 * 1024)
             raise ValueError(
                 f"File size {len(file_content)} bytes exceeds maximum "
-                f"{self.MAX_FILE_SIZE} bytes (10MB)"
+                f"{self.max_file_size} bytes ({max_mb:.0f}MB)"
             )
 
         # If same format, return as-is
@@ -238,10 +242,11 @@ class FileConnector(BaseConnector):
             raise ValueError("File is empty")
 
         # Validate file size
-        if len(file_content) > self.MAX_FILE_SIZE:
+        if len(file_content) > self.max_file_size:
+            max_mb = self.max_file_size / (1024 * 1024)
             raise ValueError(
                 f"File size {len(file_content)} bytes exceeds maximum "
-                f"{self.MAX_FILE_SIZE} bytes (10MB)"
+                f"{self.max_file_size} bytes ({max_mb:.0f}MB)"
             )
 
         # Parse file

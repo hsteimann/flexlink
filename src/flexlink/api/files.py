@@ -10,18 +10,20 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import FileResponse, StreamingResponse
 
 from flexlink.api.dependencies import get_router
+from flexlink.config import get_settings
 from flexlink.connectors.file_connector import FileConnector
 from flexlink.core.router import RequestRouter
 from flexlink.models.connector import AuthConfig, ConnectorConfig
 from flexlink.models.file import FileFormat, FileForwardResult, FileProcessingResult
 from flexlink.models.request import IntegrationRequest
 
-# File storage configuration
-DOWNLOADS_DIR = Path("data/downloads")
+# File storage configuration from settings
+settings = get_settings()
+DOWNLOADS_DIR = settings.download_dir
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Default TTL for downloaded files (24 hours)
-DEFAULT_FILE_TTL_HOURS = 24
+# TTL for downloaded files (from settings, converted from seconds to hours for readability)
+FILE_TTL_SECONDS = settings.temp_file_ttl_seconds
 
 router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
@@ -247,9 +249,11 @@ async def download_file(file_id: str) -> FileResponse:
             break
 
     if not file_path:
+        # Calculate TTL in hours for user-friendly message
+        ttl_hours = FILE_TTL_SECONDS / 3600
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"File not found: {file_id} (may have expired after {DEFAULT_FILE_TTL_HOURS} hours)",
+            detail=f"File not found: {file_id} (may have expired after {ttl_hours:.1f} hours)",
         )
 
     # Determine media type based on extension
@@ -285,7 +289,7 @@ async def cleanup_expired_files() -> dict[str, int]:
     """
     Clean up expired temporary files.
 
-    Removes files older than DEFAULT_FILE_TTL_HOURS (24 hours).
+    Removes files older than the configured TTL (temp_file_ttl_seconds from settings).
     This endpoint can be called manually or automated via cron/scheduler.
 
     Returns:
@@ -293,7 +297,7 @@ async def cleanup_expired_files() -> dict[str, int]:
     """
     deleted_count = 0
     current_time = datetime.now()
-    expiry_threshold = current_time - timedelta(hours=DEFAULT_FILE_TTL_HOURS)
+    expiry_threshold = current_time - timedelta(seconds=FILE_TTL_SECONDS)
 
     # Iterate through all files in downloads directory
     for file_path in DOWNLOADS_DIR.iterdir():

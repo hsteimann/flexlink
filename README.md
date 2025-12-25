@@ -280,22 +280,34 @@ Define routes in `config/routes/`:
 
 ### Environment Variables
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (see `.env.example` for template):
 
 ```bash
 # Application Settings
+APP_NAME=FlexLink
 DEBUG=false
 LOG_LEVEL=INFO
 
 # File Processing Settings
-MAX_FILE_SIZE_MB=10
-UPLOAD_DIR=./data/uploads
-DOWNLOAD_DIR=./data/downloads
-TEMP_FILE_TTL_SECONDS=3600
+MAX_FILE_SIZE_MB=10                    # Maximum file upload size (default: 10MB)
+UPLOAD_DIR=data/uploads                # Directory for uploaded files
+DOWNLOAD_DIR=data/downloads            # Directory for processed/temporary files
+TEMP_FILE_TTL_SECONDS=86400            # File retention period (default: 86400 = 24 hours)
 
-# API Credentials (referenced in connector configs)
+# Configuration Directory
+CONFIG_DIR=config
+
+# API Credentials (referenced in connector configs using ${VAR_NAME} syntax)
 API_TOKEN=your_secret_token_here
 ```
+
+**File Processing Configuration:**
+- **MAX_FILE_SIZE_MB**: Controls max upload size for file processing endpoints
+- **DOWNLOAD_DIR**: Where processed files are saved for async download
+- **TEMP_FILE_TTL_SECONDS**: How long files persist before cleanup (configurable per deployment)
+  - Default: 86400 seconds (24 hours)
+  - Cleanup endpoint: `DELETE /api/v1/files/cleanup`
+  - Can be automated via cron for production environments
 
 ## API Documentation
 
