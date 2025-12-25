@@ -27,6 +27,12 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 
 ### Recent Improvements
 
+**v0.2.3 - Configuration-Driven File Connector** (December 2024)
+- ✅ **Unified Connector Management**: File connector now registered in ConnectorRegistry like REST connectors
+- ✅ **YAML Configuration**: File connector configurable via `config/connectors/file.yaml`
+- ✅ **Consistent Architecture**: All connectors share same lifecycle and can be enabled/disabled via config
+- ✅ **270 Tests**: All existing tests pass with new architecture
+
 **v0.2.2 - File-to-REST Integration** (December 2024)
 - ✅ **File-to-REST Pipeline**: New `/api/v1/files/forward` endpoint bridges file processing with routing/transformation pipeline
 - ✅ **Batch Ingestion Workflows**: Parse files (CSV/JSON/XML) → Apply transformations → Forward to REST APIs
@@ -244,6 +250,7 @@ FlexLink uses YAML-based configuration for connectors and routes.
 
 Create connector configurations in `config/connectors/`:
 
+**REST Connector Example:**
 ```yaml
 # config/connectors/my_api.yaml
 name: my_api
@@ -259,6 +266,23 @@ timeout: 30
 retry_attempts: 3
 enabled: true
 ```
+
+**File Connector Example:**
+```yaml
+# config/connectors/file.yaml
+name: file
+type: file
+base_url: ""  # Not used for file connector
+auth:
+  type: none
+  credentials: {}
+enabled: true
+
+# File processing settings (max size, directories, TTL)
+# are controlled via environment variables in .env
+```
+
+**Note**: The file connector is fundamental to FlexLink and is loaded at startup from `config/connectors/file.yaml`. All connectors share the same lifecycle and can be enabled/disabled via the `enabled` flag.
 
 ### Route Configuration
 

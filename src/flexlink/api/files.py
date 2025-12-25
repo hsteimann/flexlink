@@ -9,11 +9,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
 
-from flexlink.api.dependencies import get_router
+from flexlink.api.dependencies import get_registry, get_router
 from flexlink.config import get_settings
 from flexlink.connectors.file_connector import FileConnector
 from flexlink.core.router import RequestRouter
-from flexlink.models.connector import AuthConfig, ConnectorConfig
 from flexlink.models.file import FileFormat, FileForwardResult, FileProcessingResult
 from flexlink.models.request import IntegrationRequest
 
@@ -30,18 +29,28 @@ router = APIRouter(prefix="/api/v1/files", tags=["files"])
 
 def get_file_connector() -> FileConnector:
     """
-    Create FileConnector instance.
+    Get file connector from registry.
 
     Returns:
-        FileConnector instance
+        FileConnector instance from registry
+
+    Raises:
+        HTTPException: If file connector not found in registry
     """
-    config = ConnectorConfig(
-        name="file_connector",
-        type="file",
-        base_url="",  # Not used for file connector
-        auth=AuthConfig(type="none"),
-    )
-    return FileConnector(config)
+    registry = get_registry()
+    try:
+        connector = registry.get_connector("file")
+        if not isinstance(connector, FileConnector):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="File connector has incorrect type",
+            )
+        return connector
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="File connector not registered. Check config/connectors/file.yaml exists and is loaded.",
+        )
 
 
 @router.post("/upload")

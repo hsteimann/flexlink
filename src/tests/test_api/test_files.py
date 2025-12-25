@@ -17,8 +17,24 @@ from flexlink.models.transformation import RouteConfig
 
 @pytest.fixture
 def client():
-    """Create test client for file routes."""
+    """Create test client for file routes with file connector registered."""
     from fastapi import FastAPI
+    from flexlink.api import dependencies
+    from flexlink.connectors.file_connector import FileConnector
+
+    # Setup registry with file connector
+    registry = ConnectorRegistry()
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
+
+    # Setup dependencies
+    dependencies.set_registry(registry)
 
     app = FastAPI()
     app.include_router(router)
@@ -437,6 +453,17 @@ async def test_forward_file_individual_mode():
     registry = ConnectorRegistry()
     http_client = httpx.AsyncClient()
 
+    # Create file connector
+    from flexlink.connectors.file_connector import FileConnector
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
+
     # Create REST connector
     config = ConnectorConfig(
         name="test_api",
@@ -512,6 +539,17 @@ async def test_forward_file_batch_mode():
     registry = ConnectorRegistry()
     http_client = httpx.AsyncClient()
 
+    # Create file connector
+    from flexlink.connectors.file_connector import FileConnector
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
+
     # Create REST connector
     config = ConnectorConfig(
         name="test_api",
@@ -584,6 +622,17 @@ async def test_forward_file_with_failures():
     # Setup registry and router
     registry = ConnectorRegistry()
     http_client = httpx.AsyncClient()
+
+    # Create file connector
+    from flexlink.connectors.file_connector import FileConnector
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
 
     # Create REST connector
     config = ConnectorConfig(
@@ -661,6 +710,18 @@ async def test_forward_empty_file():
 
     # Setup minimal dependencies
     registry = ConnectorRegistry()
+
+    # Create file connector
+    from flexlink.connectors.file_connector import FileConnector
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
+
     request_router = RequestRouter(registry)
     dependencies.set_registry(registry)
     dependencies.set_router(request_router)
@@ -699,6 +760,17 @@ async def test_forward_file_with_transformations():
     # Setup registry and router
     registry = ConnectorRegistry()
     http_client = httpx.AsyncClient()
+
+    # Create file connector
+    from flexlink.connectors.file_connector import FileConnector
+    file_config = ConnectorConfig(
+        name="file",
+        type="file",
+        base_url="",
+        auth=AuthConfig(type="none"),
+    )
+    file_connector = FileConnector(file_config)
+    registry._connectors["file"] = file_connector
 
     # Create REST connector
     config = ConnectorConfig(
