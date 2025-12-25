@@ -31,7 +31,7 @@ async def test_e2e_csv_processing(file_connector):
 5,Eve,eve@test.com,NZ,true"""
 
     # Process CSV
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=csv_content, source_format=FileFormat.CSV
     )
 
@@ -52,7 +52,7 @@ async def test_e2e_json_processing(file_connector):
 ]"""
 
     # Process JSON
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=json_content, source_format=FileFormat.JSON
     )
 
@@ -75,7 +75,7 @@ async def test_e2e_xml_processing(file_connector):
 </data>"""
 
     # Process XML
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=xml_content, source_format=FileFormat.XML
     )
 
@@ -169,7 +169,7 @@ async def test_e2e_large_file_processing(file_connector):
     large_csv = header + b"".join(rows)
 
     # Process large file
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=large_csv, source_format=FileFormat.CSV
     )
 
@@ -190,7 +190,7 @@ async def test_e2e_file_with_special_characters(file_connector):
     csv_content = csv_text.encode('utf-8')
 
     # Process file
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=csv_content, source_format=FileFormat.CSV
     )
 
@@ -239,7 +239,7 @@ async def test_e2e_file_size_limit_enforcement(file_connector):
     large_content = b"x" * (11 * 1024 * 1024)  # 11MB
 
     # Attempt to process
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=large_content, source_format=FileFormat.CSV
     )
 
@@ -256,7 +256,7 @@ async def test_e2e_empty_file_handling(file_connector):
     empty_content = b""
 
     # Process empty file
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=empty_content, source_format=FileFormat.CSV
     )
 
@@ -272,7 +272,7 @@ async def test_e2e_malformed_file_handling(file_connector):
     malformed_json = b'{"incomplete": '
 
     # Attempt to process
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         file_content=malformed_json, source_format=FileFormat.JSON
     )
 

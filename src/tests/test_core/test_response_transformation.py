@@ -25,6 +25,14 @@ def mock_registry():
 
     # Mock connector that returns predefined responses
     mock_connector = AsyncMock()
+
+    # Configure transform methods to return data unchanged (identity function)
+    async def identity_transform(data):
+        return data
+
+    mock_connector.transform_request = AsyncMock(side_effect=identity_transform)
+    mock_connector.transform_response = AsyncMock(side_effect=identity_transform)
+
     registry.get_connector.return_value = mock_connector
 
     return registry, mock_connector

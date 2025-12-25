@@ -50,7 +50,7 @@ def sample_xml():
 @pytest.mark.asyncio
 async def test_process_csv_file(file_connector, sample_csv):
     """Test processing CSV file."""
-    result = await file_connector.process_file(sample_csv, FileFormat.CSV)
+    result, _ = await file_connector.process_file(sample_csv, FileFormat.CSV)
 
     assert result.success is True
     assert result.records_processed == 5
@@ -61,7 +61,7 @@ async def test_process_csv_file(file_connector, sample_csv):
 @pytest.mark.asyncio
 async def test_process_json_file(file_connector, sample_json):
     """Test processing JSON file."""
-    result = await file_connector.process_file(sample_json, FileFormat.JSON)
+    result, _ = await file_connector.process_file(sample_json, FileFormat.JSON)
 
     assert result.success is True
     assert result.records_processed == 5
@@ -72,7 +72,7 @@ async def test_process_json_file(file_connector, sample_json):
 @pytest.mark.asyncio
 async def test_process_xml_file(file_connector, sample_xml):
     """Test processing XML file."""
-    result = await file_connector.process_file(sample_xml, FileFormat.XML)
+    result, _ = await file_connector.process_file(sample_xml, FileFormat.XML)
 
     assert result.success is True
     assert result.records_processed == 5
@@ -179,7 +179,7 @@ async def test_file_size_validation_process(file_connector):
     # Create 11MB file (exceeds 10MB limit)
     large_file = b"x" * (11 * 1024 * 1024)
 
-    result = await file_connector.process_file(large_file, FileFormat.CSV)
+    result, _ = await file_connector.process_file(large_file, FileFormat.CSV)
 
     # Should return failed result with error message
     assert result.success is False
@@ -192,7 +192,7 @@ async def test_invalid_csv_format(file_connector):
     """Test handling of invalid CSV data."""
     invalid_csv = b"not,a,valid,csv\n\x00\x01\x02"
 
-    result = await file_connector.process_file(invalid_csv, FileFormat.CSV)
+    result, _ = await file_connector.process_file(invalid_csv, FileFormat.CSV)
 
     # Should handle gracefully
     assert result.success is True or len(result.errors) > 0
@@ -203,7 +203,7 @@ async def test_empty_file_handling(file_connector):
     """Test handling of empty file."""
     empty_file = b""
 
-    result = await file_connector.process_file(empty_file, FileFormat.CSV)
+    result, _ = await file_connector.process_file(empty_file, FileFormat.CSV)
 
     assert result.success is False
     assert len(result.errors) > 0
@@ -212,7 +212,7 @@ async def test_empty_file_handling(file_connector):
 @pytest.mark.asyncio
 async def test_process_with_format_conversion(file_connector, sample_csv):
     """Test process_file with format conversion."""
-    result = await file_connector.process_file(
+    result, _ = await file_connector.process_file(
         sample_csv, FileFormat.CSV, FileFormat.JSON
     )
 

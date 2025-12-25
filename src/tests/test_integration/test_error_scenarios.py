@@ -136,7 +136,7 @@ async def test_file_connector_invalid_format():
     # Invalid JSON
     invalid_json = b"{ this is not valid json }"
 
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=invalid_json, source_format=FileFormat.JSON
     )
 
@@ -159,7 +159,7 @@ async def test_file_connector_exceeds_size_limit():
     # Create oversized file (>10MB)
     oversized_content = b"x" * (11 * 1024 * 1024)
 
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=oversized_content, source_format=FileFormat.CSV
     )
 
@@ -335,7 +335,7 @@ async def test_empty_file_processing():
     # Empty CSV
     empty_csv = b""
 
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=empty_csv, source_format=FileFormat.CSV
     )
 
@@ -358,7 +358,7 @@ async def test_malformed_xml_processing():
     # Malformed XML
     malformed_xml = b"<data><row>missing closing tag"
 
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=malformed_xml, source_format=FileFormat.XML
     )
 
@@ -382,7 +382,7 @@ async def test_file_conversion_with_incompatible_data():
     inconsistent_csv = b"id,name\n1,Alice\n2"  # Missing name in second row
 
     # Should still process but may have issues
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=inconsistent_csv, source_format=FileFormat.CSV
     )
 

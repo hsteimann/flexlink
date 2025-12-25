@@ -28,14 +28,17 @@ def get_file_connector() -> FileConnector:
     return FileConnector(config)
 
 
-@router.post("/upload", response_model=FileProcessingResult)
+@router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
     source_format: FileFormat = Query(..., description="Source file format"),
     target_format: FileFormat | None = Query(
         None, description="Convert to this format (optional)"
     ),
-) -> FileProcessingResult:
+    return_file: bool = Query(
+        False, description="Return the processed file content instead of just metadata"
+    ),
+):
     """
     Upload and process a file.
 
@@ -44,14 +47,17 @@ async def upload_file(
     - Parses file in source format (CSV, JSON, XML)
     - Optionally converts to target format
     - Returns processing results with record count
+    - Optionally returns the processed file content
 
     Args:
         file: Uploaded file
         source_format: Source file format (csv, json, xml)
         target_format: Optional target format for conversion
+        return_file: If True, returns file content; if False, returns metadata only
 
     Returns:
-        FileProcessingResult with success status and details
+        StreamingResponse with file content if return_file=True,
+        FileProcessingResult (JSON) if return_file=False
 
     Raises:
         HTTPException: If file processing fails
@@ -62,7 +68,7 @@ async def upload_file(
 
         # Process file
         connector = get_file_connector()
-        result = await connector.process_file(
+        result, output_content = await connector.process_file(
             file_content=content,
             source_format=source_format,
             target_format=target_format,
@@ -80,7 +86,19 @@ async def upload_file(
                 )
             # For other processing errors (parsing, validation), return the result
             # with success=False so caller can see details
+            return result
 
+        # Return file content if requested
+        if return_file and output_content:
+            return StreamingResponse(
+                io.BytesIO(output_content),
+                media_type="application/octet-stream",
+                headers={
+                    "Content-Disposition": f"attachment; filename={result.output_filename}"
+                },
+            )
+
+        # Otherwise return metadata
         return result
 
     except HTTPException:

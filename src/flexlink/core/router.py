@@ -98,7 +98,7 @@ class RequestRouter:
                 error=f"Connector not found: {route_config.connector}"
             )
 
-        # Apply request transformations
+        # Apply request transformations (route-level)
         transformed_data = request.body or {}
         if route_config.transformations:
             try:
@@ -106,13 +106,33 @@ class RequestRouter:
                 transformed_data = await engine.apply(transformed_data)
                 logger.debug(
                     f"Applied {len(route_config.transformations)} "
-                    f"transformations to request"
+                    f"route-level transformations to request"
                 )
             except ValueError as e:
                 logger.error(f"Request transformation failed: {e}")
                 return IntegrationResponse(
                     status_code=400,
                     error=f"Request transformation failed: {e}"
+                )
+
+        # Apply connector-specific request transformations
+        if transformed_data:
+            try:
+                connector_transformed = await connector.transform_request(transformed_data)
+                if connector_transformed is not None:
+                    transformed_data = connector_transformed
+                    logger.debug(
+                        f"Applied connector-specific request transformation "
+                        f"for {route_config.connector}"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Connector request transformation failed for "
+                    f"{route_config.connector}: {e}"
+                )
+                return IntegrationResponse(
+                    status_code=400,
+                    error=f"Connector request transformation failed: {str(e)}"
                 )
 
         # Extract path parameters and substitute in target path
@@ -127,13 +147,55 @@ class RequestRouter:
                 path=target_path,
                 data=transformed_data,
                 headers=request.headers,
+                params=request.query_params,  # Forward query parameters
             )
             logger.info(
                 f"Request routed successfully: {route_config.connector} "
                 f"returned {response.status_code}"
             )
 
-            # Apply response transformations
+            # Apply connector-specific response transformations
+            if response.body is not None and isinstance(response.body, dict):
+                try:
+                    connector_transformed = await connector.transform_response(response.body)
+                    if connector_transformed is not None:
+                        response.body = connector_transformed
+                        logger.debug(
+                            f"Applied connector-specific response transformation "
+                            f"for {route_config.connector}"
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Connector response transformation failed for "
+                        f"{route_config.connector}: {e}. Using original response."
+                    )
+                    # Don't fail request - just use original response
+            elif response.body is not None and isinstance(response.body, list):
+                # For list responses, transform each dict item
+                try:
+                    transformed_items = []
+                    for item in response.body:
+                        if isinstance(item, dict):
+                            connector_transformed = await connector.transform_response(item)
+                            if connector_transformed is not None:
+                                transformed_items.append(connector_transformed)
+                            else:
+                                transformed_items.append(item)
+                        else:
+                            transformed_items.append(item)
+                    response.body = transformed_items
+                    logger.debug(
+                        f"Applied connector-specific response transformation to "
+                        f"{len(transformed_items)} items for {route_config.connector}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Connector response transformation failed for "
+                        f"{route_config.connector}: {e}. Using original response."
+                    )
+                    # Don't fail request - just use original response
+
+            # Apply response transformations (route-level)
             if route_config.response_transformations and response.body is not None:
                 try:
                     # Handle dict responses

@@ -1,6 +1,6 @@
 """REST API routes for integration requests."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from flexlink.api.dependencies import get_registry, get_router
 from flexlink.core.registry import ConnectorRegistry
@@ -12,7 +12,9 @@ router = APIRouter(prefix="/api/v1", tags=["integration"])
 
 @router.post("/route", response_model=IntegrationResponse)
 async def route_request(
-    request: IntegrationRequest, request_router: RequestRouter = Depends(get_router)
+    request: IntegrationRequest,
+    http_response: Response,
+    request_router: RequestRouter = Depends(get_router),
 ) -> IntegrationResponse:
     """
     Route a request to the appropriate connector.
@@ -25,16 +27,22 @@ async def route_request(
 
     Args:
         request: Integration request with route, method, and body
+        http_response: FastAPI Response object to set HTTP status code
         request_router: RequestRouter dependency
 
     Returns:
         Integration response from target connector
 
-    Raises:
-        HTTPException: If routing fails
+    Note:
+        The HTTP status code of the response will match the status_code
+        field in the IntegrationResponse body for proper HTTP semantics.
     """
-    response = await request_router.route_request(request)
-    return response
+    integration_response = await request_router.route_request(request)
+
+    # Set actual HTTP status code to match integration result
+    http_response.status_code = integration_response.status_code
+
+    return integration_response
 
 
 @router.get("/connectors")

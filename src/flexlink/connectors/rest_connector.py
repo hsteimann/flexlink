@@ -51,6 +51,8 @@ class RestConnector(BaseConnector):
             path: Request path (will be appended to base_url)
             data: Request body data (for POST, PUT, PATCH)
             **kwargs: Additional request parameters (headers, params, etc.)
+                params: Query string parameters (dict)
+                headers: Request headers (dict)
 
         Returns:
             IntegrationResponse with status code, headers, body, and error (if any).
@@ -61,6 +63,10 @@ class RestConnector(BaseConnector):
         Raises:
             httpx.TimeoutException: If all retry attempts timeout
             Exception: If request fails with non-HTTP error after all retry attempts
+
+        Note:
+            GET and DELETE requests will use query parameters (params) instead of
+            JSON body, unless data is explicitly provided. This follows HTTP semantics.
         """
         # Build full URL
         url = f"{self.config.base_url}/{path.lstrip('/')}"
@@ -72,26 +78,48 @@ class RestConnector(BaseConnector):
             **kwargs.get("headers", {}),
         }
 
-        # Remove headers key from kwargs if present to avoid duplication
-        if "headers" in kwargs:
-            kwargs = {k: v for k, v in kwargs.items() if k != "headers"}
+        # Extract query parameters from kwargs
+        params = kwargs.get("params", {})
+
+        # Remove headers and params from kwargs to avoid duplication
+        kwargs = {k: v for k, v in kwargs.items() if k not in ("headers", "params")}
+
+        # Determine request payload based on HTTP method
+        # GET, DELETE, HEAD, OPTIONS should use query params, not body
+        # Unless data is explicitly provided (some APIs support it)
+        method_upper = method.upper()
+        request_kwargs = {
+            "method": method_upper,
+            "url": url,
+            "headers": headers,
+            "timeout": self.config.timeout,
+            **kwargs,
+        }
+
+        # For GET/DELETE/HEAD/OPTIONS: use params for query string, avoid body unless explicit
+        if method_upper in ("GET", "DELETE", "HEAD", "OPTIONS"):
+            if params:
+                request_kwargs["params"] = params
+            # Only include body if explicitly provided (non-empty)
+            if data:
+                request_kwargs["json"] = data
+        else:
+            # For POST/PUT/PATCH: use json body
+            if data:
+                request_kwargs["json"] = data
+            # Also support query params for POST/PUT/PATCH if provided
+            if params:
+                request_kwargs["params"] = params
 
         # Retry loop with exponential backoff
         for attempt in range(self.config.retry_attempts):
             try:
                 self.logger.debug(
                     f"Request attempt {attempt + 1}/{self.config.retry_attempts}: "
-                    f"{method} {url}"
+                    f"{method} {url} (params={params})"
                 )
 
-                response = await self.client.request(
-                    method=method.upper(),
-                    url=url,
-                    json=data,
-                    headers=headers,
-                    timeout=self.config.timeout,
-                    **kwargs,
-                )
+                response = await self.client.request(**request_kwargs)
 
                 # Raise for 4xx and 5xx errors
                 response.raise_for_status()

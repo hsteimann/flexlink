@@ -51,9 +51,12 @@ async def test_concurrent_file_processing():
     results = await asyncio.gather(*tasks)
     duration = time.time() - start_time
 
+    # Unpack tuples (result, output_content)
+    result_objects = [r[0] for r in results]
+
     # Verify all processed successfully
-    assert all(result.success for result in results)
-    assert len(results) == 10
+    assert all(result.success for result in result_objects)
+    assert len(result_objects) == 10
 
     # Should be faster than sequential processing
     print(f"Concurrent processing of 10 files: {duration:.3f}s")
@@ -196,7 +199,7 @@ async def test_large_file_processing_performance():
 
     # Process file
     start_time = time.time()
-    result = await connector.process_file(
+    result, _ = await connector.process_file(
         file_content=large_csv, source_format=FileFormat.CSV
     )
     duration = time.time() - start_time

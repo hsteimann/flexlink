@@ -69,9 +69,13 @@ class FileConnector(BaseConnector):
         file_content: bytes,
         source_format: FileFormat,
         target_format: FileFormat | None = None,
-    ) -> FileProcessingResult:
+    ) -> tuple[FileProcessingResult, bytes | None]:
         """
         Process file content: parse and optionally convert format.
+
+        Returns:
+            Tuple of (FileProcessingResult, output_bytes).
+            output_bytes is None if processing failed.
 
         Args:
             file_content: Raw file content as bytes
@@ -94,7 +98,7 @@ class FileConnector(BaseConnector):
                 output_filename="",
                 errors=errors,
                 warnings=warnings,
-            )
+            ), None
 
         # Validate file size
         if len(file_content) > self.MAX_FILE_SIZE:
@@ -109,7 +113,7 @@ class FileConnector(BaseConnector):
                 output_filename="",
                 errors=errors,
                 warnings=warnings,
-            )
+            ), None
 
         try:
             # Parse source file
@@ -123,14 +127,17 @@ class FileConnector(BaseConnector):
             )
 
             # Convert to target format if specified
+            output_content: bytes | None = None
             if target_format and target_format != source_format:
                 target_parser = self.parser_factory.get_parser(target_format)
-                _ = await target_parser.generate(df)
+                output_content = await target_parser.generate(df)
                 output_format = target_format
                 logger.info(f"Converted {source_format.value} → {target_format.value}")
             else:
                 # No conversion, use source format
                 output_format = source_format
+                source_parser = self.parser_factory.get_parser(source_format)
+                output_content = await source_parser.generate(df)
 
             return FileProcessingResult(
                 success=True,
@@ -139,7 +146,8 @@ class FileConnector(BaseConnector):
                 output_filename=f"processed.{output_format.value}",
                 errors=errors,
                 warnings=warnings,
-            )
+                # Note: output_content is not in the model, handled by caller
+            ), output_content
 
         except ValueError as e:
             logger.error(f"File processing failed: {e}")
@@ -151,7 +159,7 @@ class FileConnector(BaseConnector):
                 output_filename="",
                 errors=errors,
                 warnings=warnings,
-            )
+            ), None
 
     async def convert_format(
         self,
