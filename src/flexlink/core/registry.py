@@ -94,6 +94,7 @@ class ConnectorRegistry:
             "rest": "flexlink.connectors.rest_connector.RestConnector",
             "file": "flexlink.connectors.file_connector.FileConnector",
             "postgresql": "flexlink.connectors.postgresql_connector.PostgreSQLConnector",
+            "webhook": "flexlink.connectors.webhook_connector.WebhookConnector",
         }
 
         # Get the module path for this connector type
@@ -126,6 +127,13 @@ class ConnectorRegistry:
                 # Initialize connection pool (database connectors only)
                 if hasattr(connector, 'initialize_pool'):
                     await connector.initialize_pool()
+            elif connector_type == "webhook":
+                # Webhook connectors need WebhookConfig and shared HTTP client
+                if http_client is None:
+                    raise ValueError("HTTP client required for webhook connectors")
+                from flexlink.models.webhook import WebhookConfig
+                webhook_config = WebhookConfig.model_validate(config.headers)
+                connector = connector_class(config, http_client, webhook_config)
             else:
                 connector = connector_class(config)
 
