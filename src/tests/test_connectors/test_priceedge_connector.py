@@ -14,7 +14,9 @@ async def test_priceedge_connector_loads():
     registry = ConnectorRegistry()
 
     # Load connectors from config directory
-    await registry.load_connectors("config/connectors")
+    async with httpx.AsyncClient() as client:
+        from pathlib import Path
+        await registry.load_connectors(http_client=client, config_dir=Path("config"))
 
     # Check PriceEdge connector was loaded
     assert "priceedge" in registry.list_connectors()

@@ -1,0 +1,33 @@
+name: example-simple-etl
+description: Simple ETL pipeline demonstrating extract → transform → load workflow
+version: "1.0"
+
+tags:
+  - example
+  - etl
+  - tutorial
+
+enabled: true
+
+steps:
+  - name: extract_orders
+    type: extract
+    connector: rest-api-source
+    method: GET
+    path: /api/orders
+    params:
+      query_params:
+        status: completed
+        limit: 100
+    on_error: fail_pipeline
+
+  - name: transform_orders
+    type: transform
+    mapping_ref: order-mapping
+    on_error: fail_pipeline
+
+  - name: load_to_database
+    type: load
+    connector: postgres-output
+    operation: insert
+    on_error: fail_pipeline

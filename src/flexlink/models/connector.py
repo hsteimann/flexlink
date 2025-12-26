@@ -1,5 +1,6 @@
 """Connector configuration models."""
 
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,9 +28,9 @@ class ConnectorConfig(BaseModel):
         default_factory=lambda: AuthConfig(type="none"),
         description="Authentication configuration"
     )
-    headers: dict[str, str] = Field(
+    headers: dict[str, Any] = Field(
         default_factory=dict,
-        description="Default headers for requests"
+        description="Default headers for requests (string values) or database config (Any type)"
     )
     timeout: int = Field(
         default=30,
