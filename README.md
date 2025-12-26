@@ -30,6 +30,16 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 
 ### Recent Improvements
 
+**v0.4.0 - Pipeline Orchestration Layer** (December 2024)
+- ✅ **Declarative Pipelines**: Define complete Extract → Transform → Load workflows in YAML configuration
+- ✅ **Multi-Step Execution**: Chain multiple extraction, transformation, and load operations sequentially
+- ✅ **Pagination Support**: Automatic data fetching with offset/limit, cursor, and page-based strategies
+- ✅ **Batch Loading**: Efficient bulk data transfer with configurable batch sizes and partial failure handling
+- ✅ **Retry Logic**: Exponential, linear, and fixed backoff strategies with jitter for failed steps
+- ✅ **Error Handling**: Configurable strategies (fail pipeline, skip step, or continue) per step
+- ✅ **HTTP API**: Execute pipelines via REST endpoints with real-time status and metrics
+- ✅ **328 Tests**: Added 25 new tests for pipeline orchestration (steps, orchestrator, API) - all passing
+
 **v0.3.1 - Webhook Output Connector** (December 2024)
 - ✅ **Webhook Notifications**: New webhook connector sends HTTP POST notifications to external endpoints
 - ✅ **HMAC Signatures**: HMAC-SHA256 signature generation for webhook security and payload verification
@@ -470,6 +480,189 @@ API_TOKEN=your_secret_token_here
   - Default: 86400 seconds (24 hours)
   - Cleanup endpoint: `DELETE /api/v1/files/cleanup`
   - Can be automated via cron for production environments
+
+## Pipeline Orchestration
+
+### Overview
+
+Pipeline orchestration enables declarative, multi-step ETL workflows defined in YAML. Pipelines chain Extract → Transform → Load operations with built-in retry logic, pagination, and error handling.
+
+### Defining a Pipeline
+
+Create a pipeline configuration in `config/pipelines/`:
+
+```yaml
+# config/pipelines/order-sync.yaml
+name: order-sync
+description: Sync orders from API to database
+version: "1.0"
+enabled: true
+tags: ["production", "orders"]
+
+steps:
+  - name: extract_orders
+    type: extract
+    connector: rest-api-source
+    method: GET
+    path: /api/orders
+    pagination:
+      enabled: true
+      strategy: offset  # or cursor, page
+      page_size: 100
+      max_pages: 50
+    retry_policy:
+      max_attempts: 3
+      backoff_strategy: exponential
+      initial_delay_seconds: 1.0
+      backoff_factor: 2.0
+    on_error: fail_pipeline
+
+  - name: transform_orders
+    type: transform
+    mapping_ref: order-mapping
+    on_error: fail_pipeline
+
+  - name: load_to_database
+    type: load
+    connector: postgres-output
+    operation: insert
+    batch_config:
+      enabled: true
+      batch_size: 50
+      wrapper_key: records
+    on_error: fail_pipeline
+```
+
+### Executing Pipelines
+
+**Via API:**
+
+```bash
+# List all pipelines
+curl http://localhost:8000/api/v1/pipelines
+
+# Get pipeline details
+curl http://localhost:8000/api/v1/pipelines/order-sync
+
+# Execute pipeline
+curl -X POST http://localhost:8000/api/v1/pipelines/order-sync/run \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": {}}'
+
+# Reload pipeline configuration
+curl -X POST http://localhost:8000/api/v1/pipelines/order-sync/reload
+```
+
+**Response Example:**
+
+```json
+{
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pipeline_name": "order-sync",
+  "status": "success",
+  "started_at": "2024-12-26T10:30:00Z",
+  "completed_at": "2024-12-26T10:30:05Z",
+  "duration_seconds": 5.2,
+  "steps": [
+    {
+      "step_name": "extract_orders",
+      "status": "success",
+      "duration_seconds": 2.1,
+      "records_processed": 500
+    },
+    {
+      "step_name": "transform_orders",
+      "status": "success",
+      "duration_seconds": 1.5,
+      "records_processed": 500
+    },
+    {
+      "step_name": "load_to_database",
+      "status": "success",
+      "duration_seconds": 1.6,
+      "records_processed": 500
+    }
+  ],
+  "metadata": {
+    "records_extracted": 500,
+    "records_transformed": 500,
+    "records_loaded": 500,
+    "validation_errors": 0
+  }
+}
+```
+
+### Advanced Pipeline Features
+
+**Pagination Strategies:**
+
+```yaml
+# Offset/Limit Pagination
+pagination:
+  enabled: true
+  strategy: offset
+  page_size: 100
+  max_pages: 50
+
+# Cursor-based Pagination
+pagination:
+  enabled: true
+  strategy: cursor
+  page_size: 100
+  cursor_param: cursor
+  size_param: limit
+  next_cursor_path: pagination.next_cursor
+  data_path: data
+
+# Page Number Pagination
+pagination:
+  enabled: true
+  strategy: page
+  page_size: 50
+  max_pages: 20
+  page_param: page
+  size_param: per_page
+  start_page: 1
+```
+
+**Batch Loading:**
+
+```yaml
+steps:
+  - name: load_in_batches
+    type: load
+    connector: webhook
+    batch_config:
+      enabled: true
+      batch_size: 50
+      wrapper_key: items  # Wrap batch in {"items": [...]}
+      status_field: status
+      success_values: ["success", "ok", "created"]
+```
+
+**Error Handling:**
+
+```yaml
+steps:
+  - name: critical_step
+    on_error: fail_pipeline  # Stop entire pipeline if this fails
+
+  - name: optional_step
+    on_error: skip_step  # Skip this step and continue
+
+  - name: notification_step
+    on_error: continue  # Log error but continue pipeline
+```
+
+**Retry Strategies:**
+
+```yaml
+retry_policy:
+  max_attempts: 5
+  backoff_strategy: exponential  # or linear, fixed
+  initial_delay_seconds: 1.0
+  backoff_factor: 2.0  # delay doubles each retry
+```
 
 ## API Documentation
 

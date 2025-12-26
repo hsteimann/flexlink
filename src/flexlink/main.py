@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from flexlink.api import dependencies, files, health, routes
+from flexlink.api import dependencies, files, health, pipelines, routes
 from flexlink.config import get_settings, load_route_configs
+from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
+from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
+from flexlink.core.transformation import TransformationEngine
 from flexlink.middleware.error_handling import ErrorHandlingMiddleware
 from flexlink.middleware.logging import LoggingMiddleware
 
@@ -80,6 +83,30 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     dependencies.set_router(router)
     logger.info("Dependencies initialized")
 
+    # Initialize pipeline registry
+    logger.info("Loading pipeline configurations")
+    pipeline_registry = PipelineRegistry()
+    try:
+        pipeline_registry.load_pipelines()
+        logger.info(f"Loaded {len(pipeline_registry.list_pipelines())} pipelines")
+    except Exception as e:
+        logger.warning(f"No pipelines loaded: {e}")
+        logger.info("Starting without pipelines (pipelines can be added via config)")
+
+    # Initialize pipeline orchestrator
+    logger.info("Initializing pipeline orchestrator")
+    transformation_engine = TransformationEngine(rules=[])
+    orchestrator = PipelineOrchestrator(
+        pipeline_registry=pipeline_registry,
+        connector_registry=registry,
+        transformation_engine=transformation_engine
+    )
+
+    # Store in app state for dependency injection
+    app.state.pipeline_registry = pipeline_registry
+    app.state.pipeline_orchestrator = orchestrator
+    logger.info("Pipeline orchestrator initialized")
+
     logger.info("✅ FlexLink Middleware started successfully")
 
     yield
@@ -109,6 +136,7 @@ app.add_middleware(LoggingMiddleware)
 app.include_router(routes.router)
 app.include_router(files.router)
 app.include_router(health.router)
+app.include_router(pipelines.router)
 
 
 @app.get("/")
