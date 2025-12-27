@@ -208,6 +208,8 @@ enabled: true                  # Enable/disable pipeline
 
 ### Step Types
 
+FlexLink v0.3.x supports three step types: `extract`, `transform`, and `load`. Validation is handled inside a transform step when a mapping includes validation rules; a dedicated `validate` step is on the roadmap.
+
 **1. Extract Step**:
 ```yaml
 - name: fetch_data
@@ -240,14 +242,6 @@ enabled: true                  # Enable/disable pipeline
   params:
     table: orders
   on_error: fail_pipeline
-```
-
-**4. Validate Step** (Future):
-```yaml
-- name: validate_data
-  type: validate
-  validation_ref: pricing-rules
-  on_error: skip_row
 ```
 
 ### Error Handling Strategies
@@ -504,44 +498,35 @@ PipelineExecutionResult(
     status="success",  # success | failed | partial
     started_at="2025-12-26T10:00:00Z",
     completed_at="2025-12-26T10:00:05Z",
-
-    # Counts
-    steps_executed=5,
-    steps_succeeded=4,
-    steps_failed=1,
-    records_processed=148,
-
-    # Step-by-step details
+    duration_seconds=5.0,
     metadata=ExecutionMetadata(
-        steps={
-            "extract_prices": StepResult(
-                status="success",
-                duration_ms=1234.5,
-                records_processed=150
-            ),
-            "transform_prices": StepResult(
-                status="success",
-                duration_ms=456.2,
-                records_processed=150
-            ),
-            # ... other steps ...
-            "notify_completion": StepResult(
-                status="failed",
-                duration_ms=5000.0,
-                error_message="Webhook endpoint returned 500"
-            )
-        }
+        records_extracted=150,
+        records_transformed=148,
+        records_loaded=148,
+        validation_errors=2
     ),
-
-    # Errors
-    errors=[
-        StepError(
+    steps=[
+        StepResult(
+            step_name="extract_prices",
+            status="success",
+            duration_seconds=0.0,         # per-step timing not yet tracked
+            records_processed=150
+        ),
+        StepResult(
+            step_name="transform_prices",
+            status="success",
+            duration_seconds=0.0,
+            records_processed=148
+        ),
+        StepResult(
             step_name="notify_completion",
-            error_type="WebhookError",
-            error_message="HTTP 500: Internal Server Error",
-            timestamp="2025-12-26T10:00:05Z"
+            status="error",
+            duration_seconds=0.0,
+            records_processed=0,
+            error_message="Webhook endpoint returned 500"
         )
-    ]
+    ],
+    error_message=None  # Populated when status is failed or partial
 )
 ```
 
@@ -550,20 +535,22 @@ PipelineExecutionResult(
 **Success Check**:
 ```python
 if result.status == "success":
-    logger.info(f"Pipeline completed: {result.records_processed} records")
+    logger.info(
+        f"Pipeline completed: {result.metadata.records_loaded} records loaded"
+    )
 ```
 
 **Error Debugging**:
 ```python
-if result.errors:
-    for error in result.errors:
-        logger.error(f"Step {error.step_name} failed: {error.error_message}")
+for step in result.steps:
+    if step.status == "error":
+        logger.error(f"{step.step_name} failed: {step.error_message}")
 ```
 
 **Performance Analysis**:
 ```python
-for step_name, step_result in result.metadata.steps.items():
-    logger.info(f"{step_name}: {step_result.duration_ms}ms")
+for step in result.steps:
+    logger.info(f"{step.step_name}: {step.duration_seconds}s")
 ```
 
 ## Comparison: Routes vs Pipelines
@@ -640,8 +627,8 @@ GET /api/v1/pipelines/runs/{run_id}
 ```yaml
 schedule:
   cron: "0 2 * * *"  # 2 AM daily
-  timezone: UTC
   enabled: true
+  # timezone support planned; current scheduler runs in UTC
 ```
 
 ### v0.6.0: Advanced Features

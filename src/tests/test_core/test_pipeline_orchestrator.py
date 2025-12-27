@@ -396,3 +396,227 @@ async def test_context_mutation(orchestrator):
     # Verify metadata was updated
     assert result.metadata.records_extracted == 2
     assert result.metadata.records_loaded == 2
+
+
+# Tests for input conversion and seeding
+
+
+@pytest.mark.asyncio
+async def test_pipeline_with_single_record_input(pipeline_registry, connector_registry, transformation_engine):
+    """Test pipeline execution with single record input (dict without wrapper)."""
+    # Create transform-load pipeline (no EXTRACT step)
+    config = PipelineConfig(
+        name="webhook-processor",
+        steps=[
+            PipelineStepConfig(
+                name="load",
+                type=StepType.LOAD,
+                connector="test-output",
+                on_error=ErrorStrategy.FAIL_PIPELINE
+            )
+        ]
+    )
+    pipeline_registry._pipelines["webhook-processor"] = config
+
+    orchestrator = PipelineOrchestrator(
+        pipeline_registry=pipeline_registry,
+        connector_registry=connector_registry,
+        transformation_engine=transformation_engine
+    )
+
+    # Mock load endpoint
+    with respx.mock:
+        respx.post("https://output.example.com").mock(
+            return_value=httpx.Response(201, json={"success": True})
+        )
+
+        # Execute with single record input
+        result = await orchestrator.execute_pipeline(
+            pipeline_name="webhook-processor",
+            inputs={"id": 1, "name": "Test", "status": "active"}
+        )
+
+    # Verify
+    assert result.status == "success"
+    assert result.metadata.records_extracted == 1  # Seeded from inputs
+    assert result.metadata.records_loaded == 1
+
+
+@pytest.mark.asyncio
+async def test_pipeline_with_multiple_records_input(pipeline_registry, connector_registry, transformation_engine):
+    """Test pipeline with nested records list."""
+    # Create pipeline with LOAD only
+    config = PipelineConfig(
+        name="batch-processor",
+        steps=[
+            PipelineStepConfig(
+                name="load",
+                type=StepType.LOAD,
+                connector="test-output",
+                on_error=ErrorStrategy.FAIL_PIPELINE
+            )
+        ]
+    )
+    pipeline_registry._pipelines["batch-processor"] = config
+
+    orchestrator = PipelineOrchestrator(
+        pipeline_registry=pipeline_registry,
+        connector_registry=connector_registry,
+        transformation_engine=transformation_engine
+    )
+
+    # Mock load endpoint
+    with respx.mock:
+        respx.post("https://output.example.com").mock(
+            return_value=httpx.Response(201, json={"success": True})
+        )
+
+        # Execute with multiple records
+        result = await orchestrator.execute_pipeline(
+            pipeline_name="batch-processor",
+            inputs={
+                "records": [
+                    {"id": 1, "name": "Item 1"},
+                    {"id": 2, "name": "Item 2"},
+                    {"id": 3, "name": "Item 3"}
+                ]
+            }
+        )
+
+    # Verify
+    assert result.status == "success"
+    assert result.metadata.records_extracted == 3
+    assert result.metadata.records_loaded == 3
+
+
+@pytest.mark.asyncio
+async def test_pipeline_without_inputs(orchestrator):
+    """Test pipeline without inputs (existing behavior)."""
+    # Mock responses
+    with respx.mock:
+        respx.get("https://api.example.com/data").mock(
+            return_value=httpx.Response(200, json=[{"id": 1}, {"id": 2}])
+        )
+        respx.post("https://output.example.com").mock(
+            return_value=httpx.Response(201, json={"success": True})
+        )
+
+        # Execute without inputs (None is default)
+        result = await orchestrator.execute_pipeline("simple-etl")
+
+    # EXTRACT step populates context.data
+    assert result.status == "success"
+    assert result.metadata.records_extracted == 2  # From EXTRACT step, not inputs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inputs,expected_count", [
+    ({"data": [{"id": 1}]}, 1),  # 'data' key
+    ({"items": [{"id": 1}, {"id": 2}]}, 2),  # 'items' key
+    ({"records": []}, 0),  # Empty list
+    ({"key": "value"}, 1),  # No list key - single record
+])
+async def test_input_format_variations(pipeline_registry, connector_registry, transformation_engine, inputs, expected_count):
+    """Test various input format patterns."""
+    # Create simple load pipeline
+    config = PipelineConfig(
+        name="flexible-processor",
+        steps=[
+            PipelineStepConfig(
+                name="load",
+                type=StepType.LOAD,
+                connector="test-output",
+                on_error=ErrorStrategy.FAIL_PIPELINE
+            )
+        ]
+    )
+    pipeline_registry._pipelines["flexible-processor"] = config
+
+    orchestrator = PipelineOrchestrator(
+        pipeline_registry=pipeline_registry,
+        connector_registry=connector_registry,
+        transformation_engine=transformation_engine
+    )
+
+    # Mock load endpoint
+    with respx.mock:
+        respx.post("https://output.example.com").mock(
+            return_value=httpx.Response(201, json={"success": True})
+        )
+
+        result = await orchestrator.execute_pipeline(
+            pipeline_name="flexible-processor",
+            inputs=inputs
+        )
+
+    assert result.metadata.records_extracted == expected_count
+
+
+@pytest.mark.asyncio
+async def test_backward_compatibility_with_extract(orchestrator):
+    """Ensure inputs don't interfere with EXTRACT steps."""
+    # Pipeline: EXTRACT -> LOAD
+    with respx.mock:
+        respx.get("https://api.example.com/data").mock(
+            return_value=httpx.Response(200, json=[{"id": 1}, {"id": 2}, {"id": 3}])
+        )
+        respx.post("https://output.example.com").mock(
+            return_value=httpx.Response(201, json={"success": True})
+        )
+
+        # Execute with inputs (should be overridden by EXTRACT)
+        result = await orchestrator.execute_pipeline(
+            pipeline_name="simple-etl",
+            inputs={"should": "be_overridden"}  # Initial seed
+        )
+
+    # Verify EXTRACT step data is used (3 records from API, not 1 from inputs)
+    # Note: Initial inputs seed context with 1 record, but EXTRACT step
+    # replaces context.data with its extracted data (3 records)
+    assert result.status == "success"
+    assert result.metadata.records_extracted == 3  # From EXTRACT step
+
+
+@pytest.mark.asyncio
+async def test_convert_inputs_to_records_none(orchestrator):
+    """Test _convert_inputs_to_records with None input."""
+    result = orchestrator._convert_inputs_to_records(None)
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_convert_inputs_to_records_single_dict(orchestrator):
+    """Test _convert_inputs_to_records with single dict."""
+    result = orchestrator._convert_inputs_to_records({"id": 1, "name": "Test"})
+    assert result == [{"id": 1, "name": "Test"}]
+
+
+@pytest.mark.asyncio
+async def test_convert_inputs_to_records_nested_list(orchestrator):
+    """Test _convert_inputs_to_records with nested list under 'records' key."""
+    inputs = {
+        "records": [
+            {"id": 1, "name": "Item 1"},
+            {"id": 2, "name": "Item 2"}
+        ]
+    }
+    result = orchestrator._convert_inputs_to_records(inputs)
+    assert result == inputs["records"]
+    assert len(result) == 2
+
+
+@pytest.mark.asyncio
+async def test_convert_inputs_to_records_data_key(orchestrator):
+    """Test _convert_inputs_to_records with 'data' key."""
+    inputs = {"data": [{"id": 1}]}
+    result = orchestrator._convert_inputs_to_records(inputs)
+    assert result == [{"id": 1}]
+
+
+@pytest.mark.asyncio
+async def test_convert_inputs_to_records_items_key(orchestrator):
+    """Test _convert_inputs_to_records with 'items' key."""
+    inputs = {"items": [{"id": 1}, {"id": 2}]}
+    result = orchestrator._convert_inputs_to_records(inputs)
+    assert result == inputs["items"]
+    assert len(result) == 2

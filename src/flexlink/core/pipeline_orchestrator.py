@@ -38,6 +38,49 @@ class PipelineOrchestrator:
         self.connector_registry = connector_registry
         self.transformation_engine = transformation_engine
 
+    def _convert_inputs_to_records(
+        self,
+        inputs: dict[str, Any] | None
+    ) -> list[dict[str, Any]]:
+        """
+        Convert inputs to list of records for context.data.
+
+        Supports multiple input formats:
+        - None: Empty list (existing behavior)
+        - Dict with 'records' key: Extract list from {"records": [...]}
+        - Dict with 'data' key: Extract list from {"data": [...]}
+        - Dict with 'items' key: Extract list from {"items": [...]}
+        - Plain dict: Wrap as single record [input]
+
+        Args:
+            inputs: Input data from API call
+
+        Returns:
+            List of records ready for context.data
+        """
+        if inputs is None:
+            return []
+
+        if isinstance(inputs, dict):
+            # Check for common list-wrapper keys
+            for key in ["records", "data", "items"]:
+                if key in inputs and isinstance(inputs[key], list):
+                    logger.info(
+                        f"Seeding context from inputs.{key}: "
+                        f"{len(inputs[key])} record(s)"
+                    )
+                    return inputs[key]
+
+            # No list wrapper found - treat entire dict as single record
+            logger.info("Seeding context from inputs: 1 record (single dict)")
+            return [inputs]
+
+        logger.warning(
+            f"Unexpected inputs type: {type(inputs).__name__}, "
+            f"using empty context"
+        )
+        return []
+
     async def execute_pipeline(
         self,
         pipeline_name: str,
@@ -56,17 +99,35 @@ class PipelineOrchestrator:
         # 1. Load pipeline config
         config = self.pipeline_registry.get_pipeline(pipeline_name)
 
-        # 2. Create execution context
+        # 2. Convert inputs to records
+        initial_records = self._convert_inputs_to_records(inputs)
+
+        # 3. Create execution context with seeded data
         context = PipelineRunContext(
             run_id=str(uuid.uuid4()),
             pipeline_name=pipeline_name,
             started_at=datetime.now(timezone.utc),
-            data=[],
-            metadata=ExecutionMetadata(),
+            data=initial_records,
+            metadata=ExecutionMetadata(
+                records_extracted=len(initial_records)
+            ),
             errors=[]
         )
 
-        # 3. Execute each step with retry support
+        # 4. Log context initialization
+        if initial_records:
+            logger.info(
+                f"Pipeline '{pipeline_name}' started with "
+                f"{len(initial_records)} input record(s) "
+                f"(run_id={context.run_id})"
+            )
+        else:
+            logger.info(
+                f"Pipeline '{pipeline_name}' started with empty context "
+                f"(run_id={context.run_id})"
+            )
+
+        # 5. Execute each step with retry support
         for i, step_config in enumerate(config.steps):
             context.current_step = i
             step = self._create_step(step_config)
@@ -93,7 +154,7 @@ class PipelineOrchestrator:
                     logger.warning(f"Step {step_config.name} failed, continuing")
                     continue
 
-        # 4. Build result
+        # 6. Build result
         return self._build_result(context, config)
 
     async def _execute_step_with_retry(

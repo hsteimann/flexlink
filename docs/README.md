@@ -17,29 +17,24 @@ FlexLink is an ETL (Extract, Transform, Load) middleware that provides a flexibl
 
 - [Overview](architecture/overview.md) - High-level architecture and core concepts
 - [Design Principles](architecture/design-principles.md) - Architectural decisions and rationale
-- [Component Architecture](architecture/components.md) - Detailed component breakdown
-- [Data Flow](architecture/data-flow.md) - How data moves through the system
 
 ### Features
 
 #### Connectors
 - [Connector Architecture](features/connectors/README.md) - How connectors work
-- [REST Connector](features/connectors/rest-connector.md) - HTTP API integration
-- [File Connector](features/connectors/file-connector.md) - File-based data processing
-- [Webhook Connector](features/connectors/webhook-connector.md) - Event delivery system
-- [Database Connector](features/connectors/database-connector.md) - PostgreSQL integration
+- [PriceEdge Connector](connectors/priceedge.md) - Example REST integration
 
 #### Data Processing
 - [Transformation Engine](features/transformation-engine.md) - YAML-based data mapping
-- [Validation System](features/validation-system.md) - Data quality enforcement
 - [Pipeline Orchestration](features/pipeline-orchestration.md) - Multi-step workflow management
 
 ### Configuration
 
 - [Configuration Overview](configuration/overview.md) - How configuration works
-- [Connector Configuration](configuration/connectors.md) - Configuring data sources and destinations
-- [Mapping Configuration](configuration/mappings.md) - Transformation rules
-- [Pipeline Configuration](configuration/pipelines.md) - Workflow definitions
+
+### How-To Guides
+
+- [Weekday 08:00 Product Pricing Pipeline](how-to/scheduled-pipeline-example.md) - End-to-end example: REST → enrich → price lookup → DB
 
 ## Quick Navigation
 
@@ -48,6 +43,11 @@ FlexLink is an ETL (Extract, Transform, Load) middleware that provides a flexibl
 **Need to understand a specific feature?** Browse the [Features](features/) section
 
 **Configuring FlexLink?** Check the [Configuration Guide](configuration/overview.md)
+
+## Current vs Roadmap
+
+- **Current (v0.3.x)**: REST/File/Webhook connectors, PriceEdge example, transformation engine, route processing, pipeline orchestration (extract/transform/load), basic scheduling in UTC.
+- **Roadmap (v0.4.x+)**: Connector additions, richer pipeline features (validation step, background runs, more scheduler options), expanded docs for individual connectors and config flavors.
 
 ## Version
 
