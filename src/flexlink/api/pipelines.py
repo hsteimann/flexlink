@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
 from flexlink.core.pipeline_registry import PipelineRegistry
+from flexlink.core.scheduler_service import SchedulerService
 from flexlink.models.pipeline import PipelineExecutionResult
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,11 @@ def get_pipeline_registry(request: Request) -> PipelineRegistry:
 def get_orchestrator(request: Request) -> PipelineOrchestrator:
     """Get pipeline orchestrator from app state."""
     return request.app.state.pipeline_orchestrator
+
+
+def get_scheduler_service(request: Request) -> SchedulerService:
+    """Get scheduler service from app state."""
+    return request.app.state.scheduler_service
 
 
 @router.get("", response_model=PipelineListResponse)
@@ -182,3 +188,33 @@ async def reload_pipeline(
             status_code=404,
             detail=f"Pipeline '{pipeline_name}' not found after reload"
         )
+
+
+@router.get("/schedules", response_model=list[dict[str, Any]])
+async def list_scheduled_pipelines(
+    scheduler: SchedulerService = Depends(get_scheduler_service)
+) -> list[dict[str, Any]]:
+    """
+    List all currently scheduled pipelines with next run times.
+
+    Returns:
+        List of scheduled pipeline information including next run times
+    """
+    return scheduler.get_scheduled_pipelines()
+
+
+@router.post("/schedules/reload")
+async def reload_schedules(
+    scheduler: SchedulerService = Depends(get_scheduler_service)
+) -> dict[str, str]:
+    """
+    Reload all pipeline schedules from registry.
+
+    Removes existing schedules and re-registers them from updated
+    pipeline configurations.
+
+    Returns:
+        Success message
+    """
+    scheduler.reload_schedules()
+    return {"status": "success", "message": "Pipeline schedules reloaded"}

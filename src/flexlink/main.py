@@ -12,6 +12,7 @@ from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
 from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
+from flexlink.core.scheduler_service import SchedulerService
 from flexlink.core.transformation import TransformationEngine
 from flexlink.middleware.error_handling import ErrorHandlingMiddleware
 from flexlink.middleware.logging import LoggingMiddleware
@@ -107,12 +108,28 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     app.state.pipeline_orchestrator = orchestrator
     logger.info("Pipeline orchestrator initialized")
 
+    # Initialize scheduler service
+    logger.info("Initializing pipeline scheduler")
+    scheduler_service = SchedulerService(
+        pipeline_registry=pipeline_registry,
+        orchestrator=orchestrator
+    )
+    await scheduler_service.start()
+
+    # Store in app state
+    app.state.scheduler_service = scheduler_service
+    logger.info("Pipeline scheduler initialized")
+
     logger.info("✅ FlexLink Middleware started successfully")
 
     yield
 
     # Shutdown
     logger.info("Shutting down FlexLink Middleware...")
+
+    # Shutdown scheduler
+    if hasattr(app.state, 'scheduler_service'):
+        await app.state.scheduler_service.shutdown()
     if http_client:
         await http_client.aclose()
         logger.info("HTTP client closed")

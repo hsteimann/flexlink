@@ -11,6 +11,7 @@ from flexlink.core.pipeline_context import PipelineRunContext
 from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.transformation import TransformationEngine
+from flexlink.core.validator import Validator
 from flexlink.models.pipeline import (
     ErrorStrategy,
     ExecutionMetadata,
@@ -201,8 +202,19 @@ class PipelineOrchestrator:
             )
         elif step_config.type == StepType.TRANSFORM:
             mapping = mapping_loader.load_mapping_config(step_config.mapping_ref)
+
+            # Create dedicated engine with mapping rules
+            # Note: MappingRule is compatible with TransformationRule (has all required fields)
+            transform_engine = TransformationEngine(rules=mapping.mappings)  # type: ignore[arg-type]
+
+            # Create validator if validation configured
+            validator = None
+            if mapping.validation:
+                validator = Validator(config=mapping.validation)
+
             return TransformStep(
-                transformation_engine=self.transformation_engine,
+                transformation_engine=transform_engine,
+                validator=validator,
                 mapping=mapping
             )
         elif step_config.type == StepType.LOAD:

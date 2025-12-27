@@ -316,9 +316,11 @@ class TransformStep(PipelineStep):
     def __init__(
         self,
         transformation_engine,  # TransformationEngine
+        validator,  # Validator | None
         mapping  # MappingConfig
     ):
         self.transformation_engine = transformation_engine
+        self.validator = validator
         self.mapping = mapping
 
     async def execute(self, context: PipelineRunContext) -> None:
@@ -338,17 +340,11 @@ class TransformStep(PipelineStep):
         for i, record in enumerate(context.data):
             try:
                 # Apply transformation
-                result = self.transformation_engine.apply(
-                    record,
-                    self.mapping.mappings
-                )
+                result = await self.transformation_engine.apply(record)
 
                 # Apply validation if configured
-                if self.mapping.validation:
-                    validation_result = self.transformation_engine.validator.validate(
-                        result,
-                        self.mapping.validation.rules
-                    )
+                if self.validator:
+                    validation_result = await self.validator.validate(result)
 
                     if not validation_result.valid:
                         # Handle based on strategy

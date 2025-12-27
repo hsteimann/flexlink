@@ -254,10 +254,10 @@ async def test_transform_basic(pipeline_context):
 
     # Mock transformation engine
     mock_engine = MagicMock()
-    mock_engine.apply.side_effect = lambda record, mappings: {
+    mock_engine.apply = AsyncMock(side_effect=lambda record: {
         "id": record["source_id"],
         "name": record["source_name"]
-    }
+    })
 
     # Mock mapping config
     mock_mapping = MagicMock()
@@ -267,6 +267,7 @@ async def test_transform_basic(pipeline_context):
     # Create and execute step
     step = TransformStep(
         transformation_engine=mock_engine,
+        validator=None,
         mapping=mock_mapping
     )
     await step.execute(pipeline_context)
@@ -289,15 +290,15 @@ async def test_transform_with_validation_skip(pipeline_context):
 
     # Mock engine
     mock_engine = MagicMock()
-    mock_engine.apply.side_effect = lambda record, mappings: record
+    mock_engine.apply = AsyncMock(side_effect=lambda record: record)
 
-    # Mock validation
-    mock_validation_result = MagicMock()
-    mock_engine.validator.validate.side_effect = [
+    # Mock validator
+    mock_validator = MagicMock()
+    mock_validator.validate = AsyncMock(side_effect=[
         MagicMock(valid=True, errors=[]),
         MagicMock(valid=False, errors=["Value must be positive"]),
         MagicMock(valid=True, errors=[])
-    ]
+    ])
 
     mock_validation = MagicMock()
     mock_validation.rules = [{"field": "value", "min": 0}]
@@ -310,6 +311,7 @@ async def test_transform_with_validation_skip(pipeline_context):
     # Create and execute
     step = TransformStep(
         transformation_engine=mock_engine,
+        validator=mock_validator,
         mapping=mock_mapping
     )
     await step.execute(pipeline_context)
@@ -329,11 +331,14 @@ async def test_transform_with_validation_fail(pipeline_context):
 
     # Mock engine
     mock_engine = MagicMock()
-    mock_engine.apply.side_effect = lambda record, mappings: record
-    mock_engine.validator.validate.return_value = MagicMock(
+    mock_engine.apply = AsyncMock(side_effect=lambda record: record)
+
+    # Mock validator
+    mock_validator = MagicMock()
+    mock_validator.validate = AsyncMock(return_value=MagicMock(
         valid=False,
         errors=["Value must be positive"]
-    )
+    ))
 
     mock_validation = MagicMock()
     mock_validation.rules = [{"field": "value", "min": 0}]
@@ -346,6 +351,7 @@ async def test_transform_with_validation_fail(pipeline_context):
     # Create step
     step = TransformStep(
         transformation_engine=mock_engine,
+        validator=mock_validator,
         mapping=mock_mapping
     )
 
@@ -364,6 +370,7 @@ async def test_transform_empty_data(pipeline_context):
 
     step = TransformStep(
         transformation_engine=mock_engine,
+        validator=None,
         mapping=mock_mapping
     )
     await step.execute(pipeline_context)

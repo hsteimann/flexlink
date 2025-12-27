@@ -9,6 +9,24 @@ tags:
 
 enabled: true
 
+# Scheduling configuration (optional)
+# Uncomment and configure to enable automatic execution
+schedule:
+  enabled: false  # Set to true to enable scheduled execution
+
+  # Option 1: Use cron expression for flexible scheduling
+  # Examples:
+  #   "0 */6 * * *"     - Every 6 hours
+  #   "0 2 * * *"       - Daily at 2:00 AM
+  #   "0 9 * * MON-FRI" - Weekdays at 9:00 AM
+  #   "*/15 * * * *"    - Every 15 minutes
+  cron: "0 */6 * * *"  # Every 6 hours
+
+  # Option 2: Use interval for simple recurring execution
+  # (Comment out cron if using interval)
+  # interval_seconds: 3600  # Every hour (3600 seconds)
+  # interval_seconds: 21600 # Every 6 hours (21600 seconds)
+
 steps:
   - name: extract_orders
     type: extract
