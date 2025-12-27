@@ -261,7 +261,7 @@ class ExtractStep(PipelineStep):
 
         return all_records
 
-    def _extract_records(self, response_body: dict | list) -> list[dict]:
+    def _extract_records(self, response_body: dict | list | None) -> list[dict]:
         """
         Extract records from response body.
 
@@ -269,7 +269,11 @@ class ExtractStep(PipelineStep):
         - Direct list: [{"id": 1}, {"id": 2}]
         - Nested list: {"data": [{"id": 1}], "meta": {}}
         - Single object: {"id": 1, "name": "test"}
+        - None/empty responses: []
         """
+        if response_body is None:
+            return []
+
         if isinstance(response_body, list):
             return response_body
 
@@ -289,13 +293,20 @@ class ExtractStep(PipelineStep):
 
         return []
 
-    def _get_nested_value(self, data: dict, path: str) -> Any:
+    def _get_nested_value(self, data: Any, path: str) -> Any:
         """
         Get nested value from dict using dot notation.
 
         Example: "pagination.next_cursor" -> data["pagination"]["next_cursor"]
+
+        Args:
+            data: Data to extract from (should be dict, but handles other types gracefully)
+            path: Dot-notation path to nested value
+
+        Returns:
+            Nested value if found, None otherwise
         """
-        if not path:
+        if not path or not isinstance(data, dict):
             return None
 
         keys = path.split(".")
@@ -524,11 +535,11 @@ class LoadStep(PipelineStep):
 
     def _check_partial_failures(
         self,
-        response_body: dict | list,
+        response_body: dict | list | None,
         batch: list[dict]
     ) -> int:
         """Check response for partial failures."""
-        if not isinstance(response_body, dict):
+        if response_body is None or not isinstance(response_body, dict):
             return 0
 
         results = None

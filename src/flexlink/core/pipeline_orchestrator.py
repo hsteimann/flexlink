@@ -193,6 +193,14 @@ class PipelineOrchestrator:
         from flexlink.core.pipeline_steps import ExtractStep, LoadStep, TransformStep
 
         if step_config.type == StepType.EXTRACT:
+            # Validate required fields for EXTRACT step
+            if not step_config.connector:
+                raise ValueError(f"Step '{step_config.name}': EXTRACT step requires 'connector' field")
+            if not step_config.method:
+                raise ValueError(f"Step '{step_config.name}': EXTRACT step requires 'method' field")
+            if not step_config.path:
+                raise ValueError(f"Step '{step_config.name}': EXTRACT step requires 'path' field")
+
             return ExtractStep(
                 connector=self.connector_registry.get_connector(step_config.connector),
                 method=step_config.method,
@@ -201,6 +209,10 @@ class PipelineOrchestrator:
                 pagination=step_config.pagination
             )
         elif step_config.type == StepType.TRANSFORM:
+            # Validate required fields for TRANSFORM step
+            if not step_config.mapping_ref:
+                raise ValueError(f"Step '{step_config.name}': TRANSFORM step requires 'mapping_ref' field")
+
             mapping = mapping_loader.load_mapping_config(step_config.mapping_ref)
 
             # Create dedicated engine with mapping rules
@@ -218,6 +230,10 @@ class PipelineOrchestrator:
                 mapping=mapping
             )
         elif step_config.type == StepType.LOAD:
+            # Validate required fields for LOAD step
+            if not step_config.connector:
+                raise ValueError(f"Step '{step_config.name}': LOAD step requires 'connector' field")
+
             return LoadStep(
                 connector=self.connector_registry.get_connector(step_config.connector),
                 operation=step_config.operation,

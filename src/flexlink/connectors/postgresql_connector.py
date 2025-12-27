@@ -5,6 +5,7 @@ import time
 from typing import Any
 
 import psycopg
+from psycopg import sql
 from psycopg_pool import AsyncConnectionPool
 
 from flexlink.connectors.database_connector import DatabaseConnector
@@ -129,14 +130,24 @@ class PostgreSQLConnector(DatabaseConnector):
         start_time = time.time()
 
         try:
-            # Build INSERT query
-            table = self._get_full_table_name()
+            # Build INSERT query using psycopg.sql for type safety
+            table_name = self._get_full_table_name()
             columns = list(data.keys())
-            column_names = ", ".join(columns)
-            placeholders = ", ".join(["%s"] * len(columns))
             values = [data[col] for col in columns]
 
-            query = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
+            # Parse table name (handle schema.table format)
+            if "." in table_name:
+                schema_name, simple_table = table_name.split(".", 1)
+                table_identifier = sql.Identifier(schema_name, simple_table)
+            else:
+                table_identifier = sql.Identifier(table_name)
+
+            # Build query: INSERT INTO table (col1, col2) VALUES (%s, %s)
+            query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                table_identifier,
+                sql.SQL(", ").join(map(sql.Identifier, columns)),
+                sql.SQL(", ").join(sql.Placeholder() * len(columns))
+            )
 
             # Execute with connection from pool
             async with self.pool.connection() as conn:
@@ -148,7 +159,7 @@ class PostgreSQLConnector(DatabaseConnector):
 
             logger.debug(
                 f"INSERT successful: {rows_affected} row(s) inserted "
-                f"into {table} ({duration_ms:.2f}ms)"
+                f"into {table_name} ({duration_ms:.2f}ms)"
             )
 
             return DatabaseWriteResult(

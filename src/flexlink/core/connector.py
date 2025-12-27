@@ -32,7 +32,7 @@ class BaseConnector(ABC):
         self,
         method: str,
         path: str,
-        data: dict[str, Any] | None = None,
+        data: dict[str, Any] | list[Any] | None = None,
         **kwargs: Any,
     ) -> IntegrationResponse:
         """
@@ -41,7 +41,7 @@ class BaseConnector(ABC):
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, etc.)
             path: Request path/endpoint
-            data: Request body data
+            data: Request body data (dict for single records, list for batch operations)
             **kwargs: Additional request parameters (headers, query params, etc.)
 
         Returns:
