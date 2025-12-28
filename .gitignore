@@ -6,6 +6,7 @@
 # Temporary files
 *.tmp
 /tmp/
+/temp/
 
 # OS files
 .DS_Store
@@ -50,6 +51,11 @@ data/downloads/*
 *.db
 *.sqlite
 *.sqlite3
+
+# Test files (should be in tests/ directory, not root)
+/test_*.py
+/test_*.csv
+/verify_*.py
 
 # Test coverage
 htmlcov/
