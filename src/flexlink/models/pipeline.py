@@ -98,6 +98,41 @@ class ExecutionMetadata(BaseModel):
     validation_errors: int = 0
 
 
+class TaskStatus(str, Enum):
+    """Status of background task."""
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class PipelineRunStatus(BaseModel):
+    """Status response for background pipeline execution."""
+    run_id: str
+    pipeline_name: str
+    status: TaskStatus
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_seconds: float | None = None
+    error_message: str | None = None
+
+
+class PipelineRunHistoryRecord(BaseModel):
+    """Historical record of pipeline execution."""
+    run_id: str
+    pipeline_name: str
+    status: str  # "success" | "partial" | "failed"
+    started_at: datetime
+    completed_at: datetime
+    duration_seconds: float
+    records_extracted: int = 0
+    records_transformed: int = 0
+    records_loaded: int = 0
+    validation_errors: int = 0
+    error_message: str | None = None
+    triggered_by: str = "manual"  # "manual" | "schedule"
+
+
 class PipelineExecutionResult(BaseModel):
     """Result of pipeline execution."""
     run_id: str

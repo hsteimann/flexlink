@@ -11,6 +11,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 if TYPE_CHECKING:
     from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
     from flexlink.core.pipeline_registry import PipelineRegistry
+    from flexlink.core.run_history import RunHistoryStorage
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,8 @@ class SchedulerService:
     def __init__(
         self,
         pipeline_registry: "PipelineRegistry",
-        orchestrator: "PipelineOrchestrator"
+        orchestrator: "PipelineOrchestrator",
+        run_history: "RunHistoryStorage | None" = None,
     ):
         """
         Initialize scheduler service.
@@ -42,9 +44,11 @@ class SchedulerService:
         Args:
             pipeline_registry: Registry containing pipeline configurations
             orchestrator: Orchestrator for executing pipelines
+            run_history: Optional run history storage for logging executions
         """
         self.pipeline_registry = pipeline_registry
         self.orchestrator = orchestrator
+        self.run_history = run_history
         self.scheduler = AsyncIOScheduler()
 
         # Configure scheduler
@@ -156,6 +160,10 @@ class SchedulerService:
                 pipeline_name=pipeline_name,
                 inputs=None
             )
+
+            # Save to history
+            if self.run_history:
+                await self.run_history.save_run(result, triggered_by="schedule")
 
             duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 

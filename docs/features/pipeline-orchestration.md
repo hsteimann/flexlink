@@ -613,23 +613,84 @@ steps:
 
 ## Future Enhancements
 
-### v0.5.0: Background Execution & Scheduling
+### v0.5.0: Background Execution & Scheduling ✅ Implemented
 
-**Async Execution**:
-```http
-POST /api/v1/pipelines/pricing-sync/run?async=true
-→ Returns run_id immediately
-GET /api/v1/pipelines/runs/{run_id}
-→ Poll for status
+**Background Execution**:
+
+For long-running pipelines, use background execution to avoid blocking HTTP workers:
+
+```bash
+# Execute pipeline in background
+curl -X POST "http://localhost:8000/api/v1/pipelines/pricing-sync/run?background=true" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": {"param": "value"}}'
+
+# Response (immediate):
+{
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pipeline_name": "pricing-sync",
+  "status": "queued",
+  "started_at": null
+}
+
+# Poll for status
+curl http://localhost:8000/api/v1/pipelines/runs/550e8400-e29b-41d4-a716-446655440000
+
+# Response (running):
+{
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pipeline_name": "pricing-sync",
+  "status": "running",
+  "started_at": "2024-12-28T10:00:00Z"
+}
+
+# Response (completed):
+{
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "pipeline_name": "pricing-sync",
+  "status": "completed",
+  "started_at": "2024-12-28T10:00:00Z",
+  "completed_at": "2024-12-28T10:05:00Z",
+  "duration_seconds": 300.5
+}
+```
+
+**Execution History**:
+
+View past pipeline executions with full audit trail:
+
+```bash
+# List all runs for a pipeline
+curl "http://localhost:8000/api/v1/pipelines/pricing-sync/runs?limit=10&offset=0"
+
+# Response:
+[
+  {
+    "run_id": "550e8400-e29b-41d4-a716-446655440000",
+    "pipeline_name": "pricing-sync",
+    "status": "success",
+    "started_at": "2024-12-28T10:00:00Z",
+    "completed_at": "2024-12-28T10:05:00Z",
+    "duration_seconds": 300.5,
+    "records_extracted": 1000,
+    "records_loaded": 1000,
+    "triggered_by": "manual"
+  }
+]
 ```
 
 **Cron Scheduling**:
+
+Configure automated pipeline execution:
+
 ```yaml
 schedule:
   cron: "0 2 * * *"  # 2 AM daily
   enabled: true
-  # timezone support planned; current scheduler runs in UTC
+  # Runs in UTC timezone
 ```
+
+Scheduled executions are automatically logged to run history with `triggered_by: "schedule"`.
 
 ### v0.6.0: Advanced Features
 

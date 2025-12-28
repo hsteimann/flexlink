@@ -21,6 +21,7 @@ dependencies = [
 
     # Pipeline scheduling (Week 3 - Phase 3)
     "apscheduler>=3.10.0",           # Scheduled pipeline execution
+    "aiosqlite>=0.20.0",             # Async SQLite for run history
 ]
 
 [project.optional-dependencies]

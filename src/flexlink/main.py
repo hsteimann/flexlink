@@ -13,6 +13,8 @@ from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
 from flexlink.core.scheduler_service import SchedulerService
+from flexlink.core.task_manager import TaskManager
+from flexlink.core.run_history import RunHistoryStorage
 from flexlink.core.transformation import TransformationEngine
 from flexlink.middleware.error_handling import ErrorHandlingMiddleware
 from flexlink.middleware.logging import LoggingMiddleware
@@ -108,11 +110,25 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     app.state.pipeline_orchestrator = orchestrator
     logger.info("Pipeline orchestrator initialized")
 
+    # Initialize task manager for background execution
+    logger.info("Initializing task manager")
+    task_manager = TaskManager()
+    app.state.task_manager = task_manager
+    logger.info("Task manager initialized")
+
+    # Initialize run history storage
+    logger.info("Initializing run history storage")
+    run_history = RunHistoryStorage(db_path="data/run_history.db")
+    await run_history.initialize()
+    app.state.run_history = run_history
+    logger.info("Run history storage initialized")
+
     # Initialize scheduler service
     logger.info("Initializing pipeline scheduler")
     scheduler_service = SchedulerService(
         pipeline_registry=pipeline_registry,
-        orchestrator=orchestrator
+        orchestrator=orchestrator,
+        run_history=run_history
     )
     await scheduler_service.start()
 
@@ -126,6 +142,11 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
     # Shutdown
     logger.info("Shutting down FlexLink Middleware...")
+
+    # Cleanup task manager
+    if hasattr(app.state, 'task_manager'):
+        app.state.task_manager.cleanup_completed_tasks()
+        logger.info("Task manager cleaned up")
 
     # Shutdown scheduler
     if hasattr(app.state, 'scheduler_service'):
