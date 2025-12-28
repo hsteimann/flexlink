@@ -4,7 +4,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-303%20passing-brightgreen.svg)](./src/tests/)
+[![Tests](https://img.shields.io/badge/tests-328%20passing-brightgreen.svg)](./src/tests/)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](./src/tests/)
 
 ## Overview
@@ -24,7 +24,7 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - **Request Routing**: Pattern-based routing with path parameters and wildcard support
 - **Batch Ingestion**: Upload files → Transform records → Forward to REST connectors or databases
 - **Extensible Architecture**: Plugin-based connector system for easy integration additions
-- **Production Ready**: 303 tests (100% pass rate), comprehensive error handling, async-first design
+- **Production Ready**: 328 tests (100% pass rate), comprehensive error handling, async-first design
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 
@@ -340,7 +340,7 @@ headers:
 
   # Operation settings
   default_operation: insert
-  conflict_columns: ["id"]  # For UPSERT (v0.4.0+)
+  conflict_columns: ["id"]  # For UPSERT (v0.5.0+)
 
   # Connection pool
   pool:
@@ -362,8 +362,8 @@ enabled: true
 - ✅ **Connection Pooling**: Production-ready connection management (2-10 connections)
 - ✅ **SQL Injection Protection**: Parameterized queries for security
 - ✅ **SSL/TLS Support**: Encrypted database connections
-- ⏳ **UPDATE/UPSERT Operations**: Coming in v0.4.0
-- ⏳ **Batch Processing**: Coming in v0.4.0 with COPY protocol
+- ⏳ **UPDATE/UPSERT Operations**: Coming in v0.5.0
+- ⏳ **Batch Processing**: Coming in v0.5.0 with COPY protocol
 
 **Environment Variables for Database Connector:**
 ```bash
@@ -1270,7 +1270,7 @@ curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&targe
 - **Single INSERT**: ~10-20ms latency
 - **Connection Pool**: Handles 50+ concurrent requests efficiently
 - **Throughput**: ~100 writes/second (simplified version)
-- **Future**: ~1000+ writes/second with batch COPY protocol (v0.4.0+)
+- **Future**: ~1000+ writes/second with batch COPY protocol (v0.5.0+)
 
 **Error Handling:**
 ```bash
@@ -2103,29 +2103,32 @@ pytest src/tests/ -v
 
 ## Roadmap
 
-### Current Version (v0.3.1)
+### Current Version (v0.4.0)
 
+- ✅ Pipeline orchestration (Extract → Transform → Load workflows)
 - ✅ REST API integration with multiple auth methods
 - ✅ Webhook output connector with HMAC signatures
 - ✅ PostgreSQL database output connector
 - ✅ File processing (CSV, JSON, XML)
-- ✅ Data transformation engine
+- ✅ Data transformation and validation engine
 - ✅ Request routing with path parameters
+- ✅ Multi-step pipelines with pagination and retry logic
 - ✅ File-to-REST and File-to-Database pipelines
 - ✅ Docker deployment
-- ✅ Comprehensive test suite (303 tests, 100% pass rate)
+- ✅ Comprehensive test suite (328 tests, 100% pass rate)
 
-### Planned Features (Phase 2)
+### Planned Features (Phase 2 - v0.5.0+)
 
-See [PRPs/flexlink-middleware-mvp-PHASE2.md](./PRPs/flexlink-middleware-mvp-PHASE2.md) for details:
+See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](./PRPs/active/flexlink-middleware-mvp-PHASE2.md) for details:
 
-- Advanced data mapping (JSONata, XSLT)
-- Streaming for large files (>10MB)
+- Background pipeline execution
+- Advanced scheduling (cron-based triggers)
 - Message queue connectors (RabbitMQ, Kafka)
-- Pipeline orchestration with fan-out capabilities
+- Advanced data mapping (JSONata expressions)
+- Streaming for large files (>10MB)
 - Additional connector types (GraphQL, SOAP, gRPC, WebSocket)
-- Observability (OpenTelemetry, Prometheus)
-- Circuit breaker and retry strategies
+- Enhanced observability (OpenTelemetry, Prometheus)
+- Circuit breaker patterns
 - API rate limiting
 
 ### Enterprise Features

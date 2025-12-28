@@ -1,7 +1,7 @@
 [project]
 name = "flexlink"
-version = "0.1.0"
-description = "Flexible REST API and File Integration Middleware Platform"
+version = "0.4.0"
+description = "Flexible ETL Middleware Platform with Pipeline Orchestration"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
