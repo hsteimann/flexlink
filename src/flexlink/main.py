@@ -110,18 +110,18 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     app.state.pipeline_orchestrator = orchestrator
     logger.info("Pipeline orchestrator initialized")
 
-    # Initialize task manager for background execution
-    logger.info("Initializing task manager")
-    task_manager = TaskManager()
-    app.state.task_manager = task_manager
-    logger.info("Task manager initialized")
-
-    # Initialize run history storage
+    # Initialize run history storage first (needed by TaskManager and SchedulerService)
     logger.info("Initializing run history storage")
     run_history = RunHistoryStorage(db_path="data/run_history.db")
     await run_history.initialize()
     app.state.run_history = run_history
     logger.info("Run history storage initialized")
+
+    # Initialize task manager for background execution
+    logger.info("Initializing task manager")
+    task_manager = TaskManager(run_history=run_history)
+    app.state.task_manager = task_manager
+    logger.info("Task manager initialized")
 
     # Initialize scheduler service
     logger.info("Initializing pipeline scheduler")

@@ -5,15 +5,18 @@ execution history to a SQLite database. It tracks all pipeline runs with
 detailed metrics and provides query capabilities for analytics.
 """
 
+import logging
 import aiosqlite
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Literal
 
 from flexlink.models.pipeline import (
     PipelineExecutionResult,
     PipelineRunHistoryRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RunHistoryStorage:
@@ -43,41 +46,50 @@ class RunHistoryStorage:
         Ensures the database directory exists and creates the pipeline_runs
         table with appropriate indexes for efficient querying.
         """
-        # Ensure directory exists
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            # Ensure directory exists
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Initializing run history database at {self.db_path}")
 
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS pipeline_runs (
-                    run_id TEXT PRIMARY KEY,
-                    pipeline_name TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    started_at TIMESTAMP NOT NULL,
-                    completed_at TIMESTAMP NOT NULL,
-                    duration_seconds REAL NOT NULL,
-                    records_extracted INTEGER DEFAULT 0,
-                    records_transformed INTEGER DEFAULT 0,
-                    records_loaded INTEGER DEFAULT 0,
-                    validation_errors INTEGER DEFAULT 0,
-                    error_message TEXT,
-                    triggered_by TEXT DEFAULT 'manual',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS pipeline_runs (
+                        run_id TEXT PRIMARY KEY,
+                        pipeline_name TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        started_at TIMESTAMP NOT NULL,
+                        completed_at TIMESTAMP NOT NULL,
+                        duration_seconds REAL NOT NULL,
+                        records_extracted INTEGER DEFAULT 0,
+                        records_transformed INTEGER DEFAULT 0,
+                        records_loaded INTEGER DEFAULT 0,
+                        validation_errors INTEGER DEFAULT 0,
+                        error_message TEXT,
+                        triggered_by TEXT DEFAULT 'manual',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """
                 )
-                """
-            )
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_pipeline_name ON pipeline_runs(pipeline_name)"
-            )
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_started_at ON pipeline_runs(started_at DESC)"
-            )
-            await db.commit()
+                await db.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_pipeline_name ON pipeline_runs(pipeline_name)"
+                )
+                await db.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_started_at ON pipeline_runs(started_at DESC)"
+                )
+                await db.commit()
 
-        self._initialized = True
+            self._initialized = True
+            logger.info("Run history database initialized successfully")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize run history database: {e}", exc_info=True)
+            raise
 
     async def save_run(
-        self, result: PipelineExecutionResult, triggered_by: str = "manual"
+        self,
+        result: PipelineExecutionResult,
+        triggered_by: Literal["manual", "schedule"] = "manual",
     ) -> None:
         """Save pipeline execution result to history.
 
@@ -85,31 +97,44 @@ class RunHistoryStorage:
             result: The pipeline execution result to save
             triggered_by: How the pipeline was triggered ("manual" or "schedule")
         """
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                """
-                INSERT INTO pipeline_runs (
-                    run_id, pipeline_name, status, started_at, completed_at,
-                    duration_seconds, records_extracted, records_transformed,
-                    records_loaded, validation_errors, error_message, triggered_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    result.run_id,
-                    result.pipeline_name,
-                    result.status,
-                    result.started_at,
-                    result.completed_at,
-                    result.duration_seconds,
-                    result.metadata.records_extracted,
-                    result.metadata.records_transformed,
-                    result.metadata.records_loaded,
-                    result.metadata.validation_errors,
-                    result.error_message,
-                    triggered_by,
-                ),
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    """
+                    INSERT INTO pipeline_runs (
+                        run_id, pipeline_name, status, started_at, completed_at,
+                        duration_seconds, records_extracted, records_transformed,
+                        records_loaded, validation_errors, error_message, triggered_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        result.run_id,
+                        result.pipeline_name,
+                        result.status,
+                        result.started_at,
+                        result.completed_at,
+                        result.duration_seconds,
+                        result.metadata.records_extracted,
+                        result.metadata.records_transformed,
+                        result.metadata.records_loaded,
+                        result.metadata.validation_errors,
+                        result.error_message,
+                        triggered_by,
+                    ),
+                )
+                await db.commit()
+
+            logger.debug(
+                f"Saved pipeline run to history: {result.pipeline_name} "
+                f"(run_id={result.run_id}, status={result.status}, triggered_by={triggered_by})"
             )
-            await db.commit()
+
+        except Exception as e:
+            logger.error(
+                f"Failed to save run {result.run_id} to history database: {e}",
+                exc_info=True
+            )
+            raise
 
     async def get_run(self, run_id: str) -> PipelineRunHistoryRecord | None:
         """Retrieve specific run by ID.
@@ -120,36 +145,43 @@ class RunHistoryStorage:
         Returns:
             PipelineRunHistoryRecord if found, None otherwise
         """
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = aiosqlite.Row
-            async with db.execute(
-                """
-                SELECT run_id, pipeline_name, status, started_at, completed_at,
-                       duration_seconds, records_extracted, records_transformed,
-                       records_loaded, validation_errors, error_message, triggered_by
-                FROM pipeline_runs
-                WHERE run_id = ?
-                """,
-                (run_id,),
-            ) as cursor:
-                row = await cursor.fetchone()
-                if not row:
-                    return None
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = aiosqlite.Row
+                async with db.execute(
+                    """
+                    SELECT run_id, pipeline_name, status, started_at, completed_at,
+                           duration_seconds, records_extracted, records_transformed,
+                           records_loaded, validation_errors, error_message, triggered_by
+                    FROM pipeline_runs
+                    WHERE run_id = ?
+                    """,
+                    (run_id,),
+                ) as cursor:
+                    row = await cursor.fetchone()
+                    if not row:
+                        logger.debug(f"Run {run_id} not found in history")
+                        return None
 
-                return PipelineRunHistoryRecord(
-                    run_id=row["run_id"],
-                    pipeline_name=row["pipeline_name"],
-                    status=row["status"],
-                    started_at=datetime.fromisoformat(row["started_at"]),
-                    completed_at=datetime.fromisoformat(row["completed_at"]),
-                    duration_seconds=row["duration_seconds"],
-                    records_extracted=row["records_extracted"],
-                    records_transformed=row["records_transformed"],
-                    records_loaded=row["records_loaded"],
-                    validation_errors=row["validation_errors"],
-                    error_message=row["error_message"],
-                    triggered_by=row["triggered_by"],
-                )
+                    logger.debug(f"Retrieved run {run_id} from history")
+                    return PipelineRunHistoryRecord(
+                        run_id=row["run_id"],
+                        pipeline_name=row["pipeline_name"],
+                        status=row["status"],
+                        started_at=datetime.fromisoformat(row["started_at"]),
+                        completed_at=datetime.fromisoformat(row["completed_at"]),
+                        duration_seconds=row["duration_seconds"],
+                        records_extracted=row["records_extracted"],
+                        records_transformed=row["records_transformed"],
+                        records_loaded=row["records_loaded"],
+                        validation_errors=row["validation_errors"],
+                        error_message=row["error_message"],
+                        triggered_by=row["triggered_by"],
+                    )
+
+        except Exception as e:
+            logger.error(f"Failed to retrieve run {run_id} from history: {e}", exc_info=True)
+            raise
 
     async def list_runs(
         self,
@@ -243,6 +275,20 @@ class RunHistoryStorage:
             ) as cursor:
                 row = await cursor.fetchone()
 
+                # Aggregate queries always return a row, but check for type safety
+                if row is None:
+                    return {
+                        "pipeline_name": pipeline_name,
+                        "total_runs": 0,
+                        "successful_runs": 0,
+                        "success_rate": 0.0,
+                        "avg_duration_seconds": 0.0,
+                        "min_duration_seconds": 0.0,
+                        "max_duration_seconds": 0.0,
+                        "total_records_extracted": 0,
+                        "total_records_loaded": 0,
+                    }
+
                 total_runs = row["total_runs"] or 0
                 successful_runs = row["successful_runs"] or 0
                 success_rate = (
@@ -270,17 +316,30 @@ class RunHistoryStorage:
         Returns:
             Number of runs deleted
         """
-        async with aiosqlite.connect(self.db_path) as db:
-            cutoff_date = datetime.now(timezone.utc).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            cutoff_timestamp = cutoff_date.timestamp() - (older_than_days * 86400)
-            cutoff_datetime = datetime.fromtimestamp(cutoff_timestamp, tz=timezone.utc)
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cutoff_date = datetime.now(timezone.utc).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                cutoff_timestamp = cutoff_date.timestamp() - (older_than_days * 86400)
+                cutoff_datetime = datetime.fromtimestamp(cutoff_timestamp, tz=timezone.utc)
 
-            cursor = await db.execute(
-                "DELETE FROM pipeline_runs WHERE started_at < ?",
-                (cutoff_datetime.isoformat(),),
-            )
-            await db.commit()
+                logger.info(f"Deleting pipeline runs older than {older_than_days} days (before {cutoff_datetime.isoformat()})")
 
-            return cursor.rowcount
+                cursor = await db.execute(
+                    "DELETE FROM pipeline_runs WHERE started_at < ?",
+                    (cutoff_datetime.isoformat(),),
+                )
+                await db.commit()
+
+                deleted_count = cursor.rowcount
+                if deleted_count > 0:
+                    logger.info(f"Deleted {deleted_count} old pipeline run(s) from history")
+                else:
+                    logger.debug("No old runs to delete")
+
+                return deleted_count
+
+        except Exception as e:
+            logger.error(f"Failed to delete old runs from history: {e}", exc_info=True)
+            raise

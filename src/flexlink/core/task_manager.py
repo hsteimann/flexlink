@@ -6,12 +6,19 @@ status polling capabilities for running and completed tasks.
 """
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from dataclasses import dataclass
 
-from flexlink.models.pipeline import PipelineExecutionResult
+from flexlink.models.pipeline import PipelineExecutionResult, TaskStatus
+
+if TYPE_CHECKING:
+    from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
+    from flexlink.core.run_history import RunHistoryStorage
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,7 +27,7 @@ class TaskInfo:
 
     run_id: str
     pipeline_name: str
-    status: str  # "queued", "running", "completed", "failed"
+    status: TaskStatus
     started_at: datetime | None = None
     completed_at: datetime | None = None
     task: asyncio.Task | None = None
@@ -38,16 +45,23 @@ class TaskManager:
 
     Attributes:
         _tasks: Dictionary mapping run_id to TaskInfo objects
+        run_history: Optional RunHistoryStorage for persisting completed runs
     """
 
-    def __init__(self):
-        """Initialize the TaskManager with an empty task registry."""
+    def __init__(self, run_history: "RunHistoryStorage | None" = None):
+        """Initialize the TaskManager with an empty task registry.
+
+        Args:
+            run_history: Optional RunHistoryStorage for persisting execution history
+        """
         self._tasks: Dict[str, TaskInfo] = {}
+        self.run_history = run_history
+        logger.info("TaskManager initialized")
 
     def submit_task(
         self,
         pipeline_name: str,
-        orchestrator: Any,
+        orchestrator: "PipelineOrchestrator",
         inputs: Dict[str, Any] | None = None,
     ) -> str:
         """Submit a pipeline for background execution.
@@ -65,11 +79,15 @@ class TaskManager:
         """
         run_id = str(uuid.uuid4())
 
+        logger.info(
+            f"Submitting background task for pipeline '{pipeline_name}' with run_id {run_id}"
+        )
+
         # Create task info with queued status
         task_info = TaskInfo(
             run_id=run_id,
             pipeline_name=pipeline_name,
-            status="queued",
+            status=TaskStatus.QUEUED,
         )
 
         # Store task info
@@ -87,7 +105,7 @@ class TaskManager:
         self,
         run_id: str,
         pipeline_name: str,
-        orchestrator: Any,
+        orchestrator: "PipelineOrchestrator",
         inputs: Dict[str, Any] | None,
     ) -> None:
         """Execute pipeline in background with error handling.
@@ -103,12 +121,14 @@ class TaskManager:
         """
         task_info = self._tasks.get(run_id)
         if not task_info:
+            logger.warning(f"Task info not found for run_id {run_id}")
             return
 
         try:
             # Update status to running
-            task_info.status = "running"
+            task_info.status = TaskStatus.RUNNING
             task_info.started_at = datetime.now(timezone.utc)
+            logger.info(f"Starting background execution of pipeline '{pipeline_name}' (run_id={run_id})")
 
             # Execute the pipeline
             result = await orchestrator.execute_pipeline(
@@ -116,15 +136,52 @@ class TaskManager:
             )
 
             # Update task with result
-            task_info.status = "completed"
+            task_info.status = TaskStatus.COMPLETED
             task_info.completed_at = datetime.now(timezone.utc)
             task_info.result = result
 
+            if task_info.started_at:
+                duration = (task_info.completed_at - task_info.started_at).total_seconds()
+                logger.info(
+                    f"Background pipeline '{pipeline_name}' completed successfully "
+                    f"(run_id={run_id}, duration={duration:.2f}s, status={result.status})"
+                )
+            else:
+                logger.info(
+                    f"Background pipeline '{pipeline_name}' completed successfully "
+                    f"(run_id={run_id}, status={result.status})"
+                )
+
+            # Save to run history if available
+            if self.run_history:
+                try:
+                    await self.run_history.save_run(result, triggered_by="manual")
+                    logger.debug(f"Saved run {run_id} to history database")
+                except Exception as history_error:
+                    logger.error(
+                        f"Failed to save run {run_id} to history: {history_error}",
+                        exc_info=True
+                    )
+
         except Exception as e:
             # Capture error
-            task_info.status = "failed"
+            task_info.status = TaskStatus.FAILED
             task_info.completed_at = datetime.now(timezone.utc)
             task_info.error = str(e)
+
+            if task_info.started_at:
+                duration = (task_info.completed_at - task_info.started_at).total_seconds()
+                logger.error(
+                    f"Background pipeline '{pipeline_name}' failed after {duration:.2f}s "
+                    f"(run_id={run_id}): {e}",
+                    exc_info=True
+                )
+            else:
+                logger.error(
+                    f"Background pipeline '{pipeline_name}' failed "
+                    f"(run_id={run_id}): {e}",
+                    exc_info=True
+                )
 
     def get_task_status(self, run_id: str) -> TaskInfo | None:
         """Get status of a running or completed task.
@@ -153,7 +210,7 @@ class TaskManager:
         to_remove = []
 
         for run_id, task_info in self._tasks.items():
-            if task_info.status in ["completed", "failed"] and task_info.completed_at:
+            if task_info.status in [TaskStatus.COMPLETED, TaskStatus.FAILED] and task_info.completed_at:
                 hours_since_completion = (
                     now - task_info.completed_at
                 ).total_seconds() / 3600
@@ -162,5 +219,12 @@ class TaskManager:
 
         for run_id in to_remove:
             del self._tasks[run_id]
+
+        if to_remove:
+            logger.info(
+                f"Cleaned up {len(to_remove)} completed task(s) older than {older_than_hours} hours"
+            )
+        else:
+            logger.debug("No old tasks to clean up")
 
         return len(to_remove)

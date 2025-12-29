@@ -1,6 +1,7 @@
 """Pipeline orchestration API endpoints."""
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
@@ -224,7 +225,7 @@ async def get_pipeline_run(
     # Check in-memory tasks first (running/recent)
     task_info = task_manager.get_task_status(run_id)
     if task_info:
-        if task_info.status in ["completed", "failed"]:
+        if task_info.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
             # Return full result for completed tasks
             if task_info.result:
                 return task_info.result
@@ -242,8 +243,6 @@ async def get_pipeline_run(
             # Return status for running/queued tasks
             duration = None
             if task_info.started_at:
-                from datetime import datetime, timezone
-
                 duration = (
                     datetime.now(timezone.utc) - task_info.started_at
                 ).total_seconds()
@@ -251,7 +250,7 @@ async def get_pipeline_run(
             return PipelineRunStatus(
                 run_id=task_info.run_id,
                 pipeline_name=task_info.pipeline_name,
-                status=TaskStatus(task_info.status),
+                status=task_info.status,
                 started_at=task_info.started_at,
                 duration_seconds=duration,
             )
@@ -281,6 +280,7 @@ async def list_pipeline_runs(
     pipeline_name: str,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    registry: PipelineRegistry = Depends(get_pipeline_registry),
     run_history: RunHistoryStorage = Depends(get_run_history),
 ) -> list[PipelineRunHistoryRecord]:
     """
@@ -296,7 +296,19 @@ async def list_pipeline_runs(
 
     Returns:
         List of pipeline run history records
+
+    Raises:
+        HTTPException: 404 if pipeline not found
     """
+    # Validate pipeline exists
+    try:
+        registry.get_pipeline(pipeline_name)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Pipeline '{pipeline_name}' not found"
+        )
+
     runs = await run_history.list_runs(
         pipeline_name=pipeline_name, limit=limit, offset=offset
     )
