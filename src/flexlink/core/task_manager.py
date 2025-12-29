@@ -8,9 +8,9 @@ status polling capabilities for running and completed tasks.
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Dict, Any, TYPE_CHECKING
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from flexlink.models.pipeline import PipelineExecutionResult, TaskStatus
 
@@ -30,7 +30,7 @@ class TaskInfo:
     status: TaskStatus
     started_at: datetime | None = None
     completed_at: datetime | None = None
-    task: asyncio.Task | None = None
+    task: asyncio.Task[None] | None = None
     result: PipelineExecutionResult | None = None
     error: str | None = None
 
@@ -54,7 +54,7 @@ class TaskManager:
         Args:
             run_history: Optional RunHistoryStorage for persisting execution history
         """
-        self._tasks: Dict[str, TaskInfo] = {}
+        self._tasks: dict[str, TaskInfo] = {}
         self.run_history = run_history
         logger.info("TaskManager initialized")
 
@@ -62,7 +62,7 @@ class TaskManager:
         self,
         pipeline_name: str,
         orchestrator: "PipelineOrchestrator",
-        inputs: Dict[str, Any] | None = None,
+        inputs: dict[str, Any] | None = None,
     ) -> str:
         """Submit a pipeline for background execution.
 
@@ -106,7 +106,7 @@ class TaskManager:
         run_id: str,
         pipeline_name: str,
         orchestrator: "PipelineOrchestrator",
-        inputs: Dict[str, Any] | None,
+        inputs: dict[str, Any] | None,
     ) -> None:
         """Execute pipeline in background with error handling.
 
@@ -127,8 +127,11 @@ class TaskManager:
         try:
             # Update status to running
             task_info.status = TaskStatus.RUNNING
-            task_info.started_at = datetime.now(timezone.utc)
-            logger.info(f"Starting background execution of pipeline '{pipeline_name}' (run_id={run_id})")
+            task_info.started_at = datetime.now(UTC)
+            logger.info(
+                f"Starting background execution of pipeline '{pipeline_name}' "
+                f"(run_id={run_id})"
+            )
 
             # Execute the pipeline
             result = await orchestrator.execute_pipeline(
@@ -137,7 +140,7 @@ class TaskManager:
 
             # Update task with result
             task_info.status = TaskStatus.COMPLETED
-            task_info.completed_at = datetime.now(timezone.utc)
+            task_info.completed_at = datetime.now(UTC)
             task_info.result = result
 
             if task_info.started_at:
@@ -166,7 +169,7 @@ class TaskManager:
         except Exception as e:
             # Capture error
             task_info.status = TaskStatus.FAILED
-            task_info.completed_at = datetime.now(timezone.utc)
+            task_info.completed_at = datetime.now(UTC)
             task_info.error = str(e)
 
             if task_info.started_at:
@@ -206,11 +209,14 @@ class TaskManager:
         Returns:
             Number of tasks removed
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         to_remove = []
 
         for run_id, task_info in self._tasks.items():
-            if task_info.status in [TaskStatus.COMPLETED, TaskStatus.FAILED] and task_info.completed_at:
+            if (
+                task_info.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]
+                and task_info.completed_at
+            ):
                 hours_since_completion = (
                     now - task_info.completed_at
                 ).total_seconds() / 3600

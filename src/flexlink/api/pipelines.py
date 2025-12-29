@@ -1,21 +1,21 @@
 """Pipeline orchestration API endpoints."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
 from flexlink.core.pipeline_registry import PipelineRegistry
+from flexlink.core.run_history import RunHistoryStorage
 from flexlink.core.scheduler_service import SchedulerService
 from flexlink.core.task_manager import TaskManager
-from flexlink.core.run_history import RunHistoryStorage
 from flexlink.models.pipeline import (
     PipelineExecutionResult,
-    PipelineRunStatus,
     PipelineRunHistoryRecord,
+    PipelineRunStatus,
     TaskStatus,
 )
 
@@ -49,27 +49,27 @@ class PipelineExecutionRequest(BaseModel):
 # Dependency injection
 def get_pipeline_registry(request: Request) -> PipelineRegistry:
     """Get pipeline registry from app state."""
-    return request.app.state.pipeline_registry
+    return request.app.state.pipeline_registry  # type: ignore[no-any-return]
 
 
 def get_orchestrator(request: Request) -> PipelineOrchestrator:
     """Get pipeline orchestrator from app state."""
-    return request.app.state.pipeline_orchestrator
+    return request.app.state.pipeline_orchestrator  # type: ignore[no-any-return]
 
 
 def get_scheduler_service(request: Request) -> SchedulerService:
     """Get scheduler service from app state."""
-    return request.app.state.scheduler_service
+    return request.app.state.scheduler_service  # type: ignore[no-any-return]
 
 
 def get_task_manager(request: Request) -> TaskManager:
     """Get task manager from app state."""
-    return request.app.state.task_manager
+    return request.app.state.task_manager  # type: ignore[no-any-return]
 
 
 def get_run_history(request: Request) -> RunHistoryStorage:
     """Get run history storage from app state."""
-    return request.app.state.run_history
+    return request.app.state.run_history  # type: ignore[no-any-return]
 
 
 @router.get("", response_model=PipelineListResponse)
@@ -244,7 +244,7 @@ async def get_pipeline_run(
             duration = None
             if task_info.started_at:
                 duration = (
-                    datetime.now(timezone.utc) - task_info.started_at
+                    datetime.now(UTC) - task_info.started_at
                 ).total_seconds()
 
             return PipelineRunStatus(

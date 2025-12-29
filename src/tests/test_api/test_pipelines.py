@@ -1,19 +1,22 @@
 """Tests for pipeline API endpoints."""
 
-import pytest
-from fastapi.testclient import TestClient
+from datetime import UTC
 from unittest.mock import AsyncMock, Mock
 
-from flexlink.main import app
-from flexlink.core.pipeline_registry import PipelineRegistry
+import pytest
+from fastapi.testclient import TestClient
+
 from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
+from flexlink.core.pipeline_registry import PipelineRegistry
+from flexlink.core.run_history import RunHistoryStorage
+from flexlink.main import app
 from flexlink.models.pipeline import (
-    PipelineConfig,
-    PipelineStepConfig,
-    StepType,
-    PipelineExecutionResult,
     ExecutionMetadata,
-    StepResult
+    PipelineConfig,
+    PipelineExecutionResult,
+    PipelineStepConfig,
+    StepResult,
+    StepType,
 )
 
 
@@ -57,14 +60,14 @@ def mock_orchestrator():
     orchestrator = Mock(spec=PipelineOrchestrator)
 
     # Mock execution result
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     result = PipelineExecutionResult(
         run_id="test-run-123",
         pipeline_name="test-pipeline",
         status="success",
-        started_at=datetime.now(timezone.utc),
-        completed_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
         duration_seconds=1.5,
         steps=[
             StepResult(
@@ -93,13 +96,40 @@ def mock_orchestrator():
 
 
 @pytest.fixture
-def test_client(mock_pipeline_registry, mock_orchestrator):
+def mock_run_history():
+    """Mock run history storage."""
+    run_history = Mock(spec=RunHistoryStorage)
+    run_history.list_runs = AsyncMock(return_value=[])
+    run_history.save_run = AsyncMock()
+    return run_history
+
+
+@pytest.fixture
+def mock_task_manager():
+    """Mock task manager."""
+    from flexlink.core.task_manager import TaskManager
+
+    task_manager = Mock(spec=TaskManager)
+    return task_manager
+
+
+@pytest.fixture
+def test_client(
+    mock_pipeline_registry, mock_orchestrator, mock_run_history, mock_task_manager
+):
     """Test client with mocked dependencies."""
-    from flexlink.api.pipelines import get_pipeline_registry, get_orchestrator
+    from flexlink.api.pipelines import (
+        get_orchestrator,
+        get_pipeline_registry,
+        get_run_history,
+        get_task_manager,
+    )
 
     # Override dependencies
     app.dependency_overrides[get_pipeline_registry] = lambda: mock_pipeline_registry
     app.dependency_overrides[get_orchestrator] = lambda: mock_orchestrator
+    app.dependency_overrides[get_run_history] = lambda: mock_run_history
+    app.dependency_overrides[get_task_manager] = lambda: mock_task_manager
 
     client = TestClient(app)
     yield client
@@ -199,3 +229,14 @@ def test_reload_pipeline(test_client):
 
     assert data["status"] == "success"
     assert "reloaded" in data["message"].lower()
+
+
+def test_list_pipeline_runs_pipeline_not_found(test_client, mock_pipeline_registry):
+    """Test listing runs for non-existent pipeline returns 404."""
+    # Make get_pipeline raise KeyError for non-existent pipeline
+    mock_pipeline_registry.get_pipeline.side_effect = KeyError("not found")
+
+    response = test_client.get("/api/v1/pipelines/non-existent-pipeline/runs")
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()

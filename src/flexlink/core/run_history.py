@@ -6,10 +6,11 @@ detailed metrics and provides query capabilities for analytics.
 """
 
 import logging
-import aiosqlite
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import List, Literal
+from typing import Any, Literal
+
+import aiosqlite
 
 from flexlink.models.pipeline import (
     PipelineExecutionResult,
@@ -188,7 +189,7 @@ class RunHistoryStorage:
         pipeline_name: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[PipelineRunHistoryRecord]:
+    ) -> list[PipelineRunHistoryRecord]:
         """List pipeline runs with pagination.
 
         Args:
@@ -212,7 +213,7 @@ class RunHistoryStorage:
                     ORDER BY started_at DESC
                     LIMIT ? OFFSET ?
                 """
-                params = (pipeline_name, limit, offset)
+                params: tuple[str | int, ...] = (pipeline_name, limit, offset)
             else:
                 query = """
                     SELECT run_id, pipeline_name, status, started_at, completed_at,
@@ -245,7 +246,7 @@ class RunHistoryStorage:
                     for row in rows
                 ]
 
-    async def get_statistics(self, pipeline_name: str) -> dict:
+    async def get_statistics(self, pipeline_name: str) -> dict[str, Any]:
         """Get success rate, average duration, and other statistics.
 
         Args:
@@ -318,13 +319,16 @@ class RunHistoryStorage:
         """
         try:
             async with aiosqlite.connect(self.db_path) as db:
-                cutoff_date = datetime.now(timezone.utc).replace(
+                cutoff_date = datetime.now(UTC).replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
                 cutoff_timestamp = cutoff_date.timestamp() - (older_than_days * 86400)
-                cutoff_datetime = datetime.fromtimestamp(cutoff_timestamp, tz=timezone.utc)
+                cutoff_datetime = datetime.fromtimestamp(cutoff_timestamp, tz=UTC)
 
-                logger.info(f"Deleting pipeline runs older than {older_than_days} days (before {cutoff_datetime.isoformat()})")
+                logger.info(
+                    f"Deleting pipeline runs older than {older_than_days} days "
+                    f"(before {cutoff_datetime.isoformat()})"
+                )
 
                 cursor = await db.execute(
                     "DELETE FROM pipeline_runs WHERE started_at < ?",
