@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -77,6 +78,12 @@ class Settings(BaseSettings):
     temp_file_ttl_seconds: int = Field(
         default=86400,  # 24 hours
         description="Time to live for temporary files in seconds (default: 86400 = 24 hours)"
+    )
+
+    # UI settings
+    ui_secret_key: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32),
+        description="Secret key for NiceGUI storage encryption (auto-generated if not set)"
     )
 
     model_config = {

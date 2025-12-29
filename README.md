@@ -30,6 +30,17 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 
 ### Recent Improvements
 
+**v0.4.1 - Web UI Monitoring Dashboard** (December 2024)
+- ✅ **Material Design 3 UI**: Modern web dashboard built with NiceGUI and Material You design system
+- ✅ **Pipeline Monitoring**: View, execute, and monitor pipelines through an intuitive web interface
+- ✅ **Real-time Status**: Live status updates for pipeline executions with auto-refresh
+- ✅ **Execution History**: Browse historical pipeline runs with filtering and pagination
+- ✅ **Run Logs**: View detailed execution logs with timestamp and severity filtering
+- ✅ **Dark/Light Theme**: Automatic theme support with manual toggle
+- ✅ **Responsive Design**: Mobile-friendly interface with Material Design 3 components
+- ✅ **Custom Exceptions**: User-friendly error handling with specific exception types
+- ✅ **57 Tests**: Comprehensive API client tests with 92% coverage on core components
+
 **v0.4.0 - Pipeline Orchestration Layer** (December 2024)
 - ✅ **Declarative Pipelines**: Define complete Extract → Transform → Load workflows in YAML configuration
 - ✅ **Multi-Step Execution**: Chain multiple extraction, transformation, and load operations sequentially
@@ -275,8 +286,161 @@ uvicorn flexlink.main:app --host 0.0.0.0 --port 8000 --workers 4
 
 The API will be available at `http://localhost:8000`
 
-- API Documentation: `http://localhost:8000/docs`
-- Health Check: `http://localhost:8000/health`
+- **API Root**: `http://localhost:8000/` - API information and links
+- **API Documentation**: `http://localhost:8000/docs` - Interactive Swagger UI
+- **Web Dashboard**: `http://localhost:8000/ui` - Monitoring and management interface
+- **Health Check**: `http://localhost:8000/health` - System health status
+
+## Web Dashboard
+
+FlexLink includes a modern web-based monitoring dashboard built with Material Design 3.
+
+### Accessing the UI
+
+Once the server is running, visit:
+
+```
+http://localhost:8000/ui
+```
+
+### UI Features
+
+#### Dashboard (Home)
+- Quick overview of pipelines and recent runs
+- System status and health checks
+- Quick action buttons for common tasks
+
+#### Pipelines View
+- **List all pipelines** with name, description, and status
+- **Execute pipelines** with a single click (foreground or background)
+- **View pipeline configuration** including steps, connectors, and transformations
+- **Schedule management** (view and configure cron/interval schedules)
+- **Enable/disable pipelines** without editing YAML files
+
+#### Execution Monitoring
+- **Real-time status updates** for running pipelines (queued → running → completed/failed)
+- **Live logs** streaming during execution with severity filtering
+- **Progress tracking** with step-by-step status
+- **Performance metrics** (duration, records processed, error counts)
+- **Auto-refresh** (configurable interval, default 5 seconds)
+
+#### Execution History
+- **Browse historical runs** with pagination
+- **Filter by status** (success, failed, running, queued)
+- **Filter by pipeline** name
+- **Sort by date** (newest/oldest first)
+- **Detailed run information** including start time, duration, and results
+- **View run logs** with timestamp and context
+
+#### Connectors View
+- **List all configured connectors** (REST, Database, Webhook, File)
+- **View connector details** (type, base URL, authentication method)
+- **Test connectivity** (coming soon)
+
+### UI Configuration
+
+Configure UI behavior via environment variables:
+
+```bash
+# UI Secret Key (auto-generated if not set)
+UI_SECRET_KEY=your-secure-random-key-here
+
+# Auto-refresh interval for monitoring pages (default: 5 seconds)
+UI_REFRESH_INTERVAL_SECONDS=5
+
+# Log entries per page (default: 100)
+UI_LOG_PAGE_SIZE=100
+
+# Historical runs per page (default: 20)
+UI_HISTORY_PAGE_SIZE=20
+
+# Theme (default: dark)
+UI_THEME=dark  # or "light"
+```
+
+### Material Design 3 Theme
+
+The UI implements Google's latest Material Design 3 (Material You) design system:
+
+- **Dynamic Color System**: Adaptive primary, secondary, and tertiary colors
+- **Elevation Levels**: Proper surface elevation and shadows
+- **Material Symbols**: Modern icon set with consistent styling
+- **Typography Scale**: M3 type system (Display, Headline, Title, Body, Label)
+- **Dark/Light Themes**: Full theme support with automatic system detection
+- **Accessibility**: WCAG AA compliant contrast ratios
+
+### API Client
+
+The UI communicates with the FlexLink API through a fully-typed async HTTP client:
+
+```python
+from flexlink.ui.api_client import FlexLinkAPIClient
+
+async with FlexLinkAPIClient("http://localhost:8000") as client:
+    # List pipelines
+    pipelines = await client.list_pipelines()
+
+    # Execute pipeline
+    result = await client.execute_pipeline("my-pipeline", background=True)
+
+    # Get run status
+    status = await client.get_run_status(run_id)
+
+    # Get logs
+    logs = await client.get_run_logs(run_id, limit=100)
+```
+
+**Exception Handling:**
+
+The API client provides custom exceptions for better error handling:
+
+- `PipelineNotFoundError`: Pipeline doesn't exist (404)
+- `APIConnectionError`: Network or timeout errors
+- `FlexLinkAPIError`: General API errors (4xx, 5xx)
+
+```python
+from flexlink.ui.api_client import PipelineNotFoundError, APIConnectionError
+
+try:
+    pipeline = await client.get_pipeline("nonexistent")
+except PipelineNotFoundError as e:
+    print(f"Pipeline not found: {e}")
+    print(f"Status code: {e.status_code}")  # 404
+except APIConnectionError as e:
+    print(f"Connection failed: {e}")
+```
+
+### UI Development
+
+**Technology Stack:**
+- **NiceGUI**: Python-based web framework with reactive components
+- **Material Design 3**: Google's latest design system
+- **httpx**: Async HTTP client for API communication
+- **Pydantic**: Configuration validation
+
+**Running in Development Mode:**
+
+```bash
+# Install UI dependencies
+uv pip install -e ".[dev]"
+
+# Run with auto-reload
+uvicorn flexlink.main:app --reload --port 8000
+
+# Access UI at http://localhost:8000/ui
+```
+
+**Testing:**
+
+```bash
+# Run UI tests (unit tests only, excludes integration tests)
+pytest src/tests/test_ui/ -m "not integration" -v
+
+# Run all tests including placeholders
+pytest src/tests/test_ui/ -v
+```
+
+**Note**: Component and integration tests are placeholders requiring browser automation (Playwright/Selenium). Real UI testing requires E2E test implementation.
 
 ## Configuration
 

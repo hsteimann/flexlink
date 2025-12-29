@@ -1,0 +1,47 @@
+# Demo Route Configurations
+# Maps incoming requests to JSONPlaceholder API
+
+routes:
+  # Get all posts
+  - path: /posts
+    method: GET
+    connector: jsonplaceholder
+    target_path: /posts
+    transformations: []
+
+  # Get single post by ID
+  - path: /posts/{id}
+    method: GET
+    connector: jsonplaceholder
+    target_path: /posts/{id}
+    transformations: []
+
+  # Create new post with field mapping
+  - path: /posts
+    method: POST
+    connector: jsonplaceholder
+    target_path: /posts
+    transformations:
+      - source_field: title
+        target_field: title
+        transformation: strip
+      - source_field: content
+        target_field: body
+        transformation: null
+      - source_field: authorId
+        target_field: userId
+        transformation: int
+
+  # Get all users
+  - path: /users
+    method: GET
+    connector: jsonplaceholder
+    target_path: /users
+    transformations: []
+
+  # Get user by ID
+  - path: /users/{id}
+    method: GET
+    connector: jsonplaceholder
+    target_path: /users/{id}
+    transformations: []

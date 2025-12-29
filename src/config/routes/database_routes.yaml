@@ -1,0 +1,57 @@
+# Database Output Routes
+# Routes for persisting transformed data to PostgreSQL
+
+# Persist pricing data from PriceEdge
+- path: /data/pricing/persist
+  method: POST
+  connector: postgres
+  target_path: ""  # Not used for database connectors
+  mapping_ref: priceedge-standard  # Reuse existing mapping
+  description: Persist PriceEdge pricing data to PostgreSQL
+
+# Persist user data
+- path: /data/users/persist
+  method: POST
+  connector: postgres
+  target_path: ""
+  transformations:
+    - source_field: user.id
+      target_field: user_id
+    - source_field: user.email
+      target_field: email
+    - source_field: user.created_at
+      target_field: created_at
+  description: Persist user data to PostgreSQL
+
+# Persist order data with validation
+- path: /data/orders/persist
+  method: POST
+  connector: postgres
+  target_path: ""
+  transformations:
+    - source_field: order.id
+      target_field: order_id
+      transformation: int
+    - source_field: order.total
+      target_field: amount
+      transformation: float
+    - source_field: order.status
+      target_field: status
+  validation:
+    rules:
+      - field: order_id
+        type: int
+        required: true
+      - field: amount
+        type: float
+        min: 0
+        required: true
+    on_validation_error: fail_pipeline
+  description: Persist order data to PostgreSQL with validation
+
+# Generic data persistence endpoint
+- path: /data/persist
+  method: POST
+  connector: postgres
+  target_path: ""
+  description: Generic endpoint for persisting any validated data to PostgreSQL

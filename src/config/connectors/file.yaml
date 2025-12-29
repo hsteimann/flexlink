@@ -1,0 +1,14 @@
+# File Connector Configuration
+# Handles CSV, JSON, and XML file processing and conversion
+# This connector is built-in and fundamental to the FlexLink system
+
+name: file
+type: file
+base_url: ""  # Not used for file connector
+auth:
+  type: none
+  credentials: {}
+enabled: true
+
+# Note: File processing settings (max size, upload/download directories, TTL)
+# are controlled via environment variables in .env (see .env.example)

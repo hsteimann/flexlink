@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Global instances
 http_client: httpx.AsyncClient | None = None
+settings = get_settings()  # Load settings at module level for UI initialization
 
 
 @asynccontextmanager
@@ -47,7 +48,6 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
 
     # Startup
     logger.info("Starting FlexLink Middleware...")
-    settings = get_settings()
 
     # Create HTTP client for REST connectors
     http_client = httpx.AsyncClient()
@@ -178,7 +178,7 @@ app.include_router(pipelines.router)
 app.include_router(connectors.router)
 app.include_router(mappings.router)
 
-
+# Root endpoint (always available)
 @app.get("/")
 async def root() -> dict[str, str]:
     """
@@ -192,4 +192,25 @@ async def root() -> dict[str, str]:
         "version": "0.1.0",
         "docs": "/docs",
         "health": "/health",
+        "ui": "/ui",
     }
+
+
+# Initialize UI (NiceGUI)
+# UI routes: /ui, /ui/pipelines, /ui/monitoring/{run_id}, /ui/history, etc.
+try:
+    from nicegui import ui
+
+    from flexlink.ui import create_ui_app
+
+    # Initialize UI with Material Design 3 theme and routes
+    # API base URL defaults to localhost:8000 (same as uvicorn default)
+    create_ui_app(api_base_url="http://localhost:8000")
+
+    # Attach NiceGUI to FastAPI app at /ui mount point
+    # Use secret key from settings for storage encryption
+    ui.run_with(app, mount_path="/ui", storage_secret=settings.ui_secret_key)
+    logger.info("✅ FlexLink UI initialized at /ui")
+except ImportError as e:
+    logger.warning(f"UI not available: {e}")
+    logger.info("API-only mode - UI disabled")
