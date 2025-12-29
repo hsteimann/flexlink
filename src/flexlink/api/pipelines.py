@@ -12,10 +12,15 @@ from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.run_history import RunHistoryStorage
 from flexlink.core.scheduler_service import SchedulerService
 from flexlink.core.task_manager import TaskManager
+from flexlink.models.logs import LogEntry, LogsResponse
 from flexlink.models.pipeline import (
     PipelineExecutionResult,
+    PipelineListItemResponse,
     PipelineRunHistoryRecord,
     PipelineRunStatus,
+    ScheduleConfig,
+    ScheduleSummary,
+    ScheduleUpdateRequest,
     TaskStatus,
 )
 
@@ -27,7 +32,7 @@ router = APIRouter(prefix="/api/v1/pipelines", tags=["pipelines"])
 # Response models
 class PipelineListResponse(BaseModel):
     """Response model for listing pipelines."""
-    pipelines: list[str]
+    pipelines: list[PipelineListItemResponse]
     count: int
 
 
@@ -39,6 +44,7 @@ class PipelineDetailResponse(BaseModel):
     enabled: bool
     steps: list[dict[str, Any]]
     tags: list[str]
+    schedule: dict[str, Any] | None = None
 
 
 class PipelineExecutionRequest(BaseModel):
@@ -74,20 +80,45 @@ def get_run_history(request: Request) -> RunHistoryStorage:
 
 @router.get("", response_model=PipelineListResponse)
 async def list_pipelines(
-    registry: PipelineRegistry = Depends(get_pipeline_registry)
+    registry: PipelineRegistry = Depends(get_pipeline_registry),
+    scheduler: SchedulerService = Depends(get_scheduler_service)
 ) -> PipelineListResponse:
     """
-    List all available pipelines.
+    List all available pipelines with metadata.
 
     Returns:
-        List of pipeline names and count
+        List of pipelines with metadata and count
     """
-    pipelines = registry.list_pipelines()
+    pipeline_names = registry.list_pipelines()
+    scheduled_info = {p["pipeline_name"]: p for p in scheduler.get_scheduled_pipelines()}
 
-    return PipelineListResponse(
-        pipelines=pipelines,
-        count=len(pipelines)
-    )
+    items = []
+    for name in pipeline_names:
+        config = registry.get_pipeline(name)
+
+        # Build schedule summary
+        schedule_summary = None
+        if config.schedule and config.schedule.enabled:
+            sched_type = "cron" if config.schedule.cron else "interval"
+            expression = config.schedule.cron or f"every {config.schedule.interval_seconds}s"
+            next_run = scheduled_info.get(name, {}).get("next_run_time")
+
+            schedule_summary = ScheduleSummary(
+                enabled=True,
+                type=sched_type,
+                expression=expression,
+                next_run=next_run
+            )
+
+        items.append(PipelineListItemResponse(
+            name=config.name,
+            description=config.description,
+            enabled=config.enabled,
+            schedule=schedule_summary,
+            tags=config.tags
+        ))
+
+    return PipelineListResponse(pipelines=items, count=len(items))
 
 
 @router.get("/{pipeline_name}", response_model=PipelineDetailResponse)
@@ -130,7 +161,8 @@ async def get_pipeline(
             }
             for step in config.steps
         ],
-        tags=config.tags
+        tags=config.tags,
+        schedule=config.schedule.model_dump() if config.schedule else None
     )
 
 
@@ -315,6 +347,56 @@ async def list_pipeline_runs(
     return runs
 
 
+@router.get(
+    "/{pipeline_name}/runs/{run_id}/logs",
+    response_model=LogsResponse,
+)
+async def get_pipeline_run_logs(
+    pipeline_name: str,
+    run_id: str,
+    limit: int = Query(default=1000, ge=1, le=10000),
+    offset: int = Query(default=0, ge=0),
+    task_manager: TaskManager = Depends(get_task_manager),
+) -> LogsResponse:
+    """
+    Get logs for a pipeline run.
+
+    For active/recent runs, retrieves logs from in-memory task storage.
+    Historical runs do not have logs stored (logs are ephemeral).
+
+    Args:
+        pipeline_name: Name of pipeline
+        run_id: Unique run identifier
+        limit: Maximum log entries to return (1-10000, default: 1000)
+        offset: Number of entries to skip (default: 0)
+
+    Returns:
+        Log entries with pagination
+
+    Raises:
+        HTTPException: 404 if run not found or logs unavailable
+    """
+    # Check task manager for in-memory logs
+    task_info = task_manager.get_task_status(run_id)
+
+    if not task_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Run {run_id} not found or logs not available (only recent runs have logs)"
+        )
+
+    # Apply pagination
+    total = len(task_info.logs)
+    paginated_logs = task_info.logs[offset:offset + limit]
+
+    return LogsResponse(
+        run_id=run_id,
+        pipeline_name=pipeline_name,
+        logs=[LogEntry(**log) for log in paginated_logs],
+        total_entries=total
+    )
+
+
 @router.post("/{pipeline_name}/reload")
 async def reload_pipeline(
     pipeline_name: str,
@@ -374,3 +456,107 @@ async def reload_schedules(
     """
     scheduler.reload_schedules()
     return {"status": "success", "message": "Pipeline schedules reloaded"}
+
+
+@router.patch("/{pipeline_name}/schedule")
+async def update_pipeline_schedule(
+    pipeline_name: str,
+    schedule_update: ScheduleUpdateRequest,
+    registry: PipelineRegistry = Depends(get_pipeline_registry),
+    scheduler: SchedulerService = Depends(get_scheduler_service),
+) -> dict[str, str]:
+    """
+    Update pipeline schedule configuration.
+
+    Updates the schedule in-memory only (does not persist to YAML config).
+    Schedule changes are lost on service restart.
+
+    Args:
+        pipeline_name: Name of pipeline to update
+        schedule_update: New schedule configuration
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: 404 if pipeline not found
+        HTTPException: 400 if schedule configuration invalid
+    """
+    # Validate pipeline exists
+    try:
+        registry.get_pipeline(pipeline_name)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Pipeline '{pipeline_name}' not found"
+        )
+
+    # Create ScheduleConfig from request
+    try:
+        new_schedule = ScheduleConfig(
+            enabled=schedule_update.enabled,
+            cron=schedule_update.cron,
+            interval_seconds=schedule_update.interval_seconds
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid schedule configuration: {str(e)}"
+        )
+
+    # Update scheduler
+    try:
+        scheduler.update_pipeline_schedule(pipeline_name, new_schedule)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {
+        "status": "success",
+        "message": f"Schedule updated for pipeline '{pipeline_name}'"
+    }
+
+
+@router.post("/{pipeline_name}/schedule/run-now")
+async def trigger_scheduled_pipeline_now(
+    pipeline_name: str,
+    registry: PipelineRegistry = Depends(get_pipeline_registry),
+    scheduler: SchedulerService = Depends(get_scheduler_service),
+) -> dict[str, str]:
+    """
+    Trigger immediate execution of a scheduled pipeline.
+
+    Executes the pipeline immediately, bypassing the schedule.
+    Pipeline does not need to be scheduled to use this endpoint.
+
+    Args:
+        pipeline_name: Name of pipeline to execute
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: 404 if pipeline not found
+        HTTPException: 500 if execution fails
+    """
+    # Validate pipeline exists
+    try:
+        registry.get_pipeline(pipeline_name)
+    except KeyError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Pipeline '{pipeline_name}' not found"
+        )
+
+    # Execute immediately
+    try:
+        await scheduler.run_pipeline_now(pipeline_name)
+        return {
+            "status": "success",
+            "message": f"Pipeline '{pipeline_name}' execution triggered"
+        }
+    except Exception as e:
+        logger.error(f"Failed to execute pipeline '{pipeline_name}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Pipeline execution failed: {str(e)}"
+        )

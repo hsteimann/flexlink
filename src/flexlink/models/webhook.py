@@ -1,6 +1,8 @@
 """Webhook connector configuration models."""
 
 from enum import Enum
+from typing import Any
+
 from pydantic import BaseModel, Field, HttpUrl
 
 
@@ -81,6 +83,10 @@ class WebhookDeliveryResult(BaseModel):
     success: bool = Field(..., description="Whether delivery succeeded")
     status_code: int | None = Field(default=None, description="HTTP status code")
     attempts: int = Field(default=1, description="Number of delivery attempts")
-    duration_ms: float = Field(default=0.0, description="Total duration in milliseconds")
+    duration_ms: float = Field(
+        default=0.0, description="Total duration in milliseconds"
+    )
     error: str | None = Field(default=None, description="Error message if failed")
-    response_body: dict | str | None = Field(default=None, description="Response from webhook")
+    response_body: dict[str, Any] | str | None = Field(
+        default=None, description="Response from webhook"
+    )

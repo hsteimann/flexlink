@@ -1,6 +1,7 @@
 """Mapping configuration models for YAML-based transformations."""
 
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 from flexlink.models.transformation import TransformationRule

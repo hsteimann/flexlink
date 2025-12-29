@@ -77,7 +77,7 @@ class PipelineRegistry:
             ValueError: If duplicate pipeline name or invalid config
         """
         # Read and parse YAML
-        with open(yaml_file, 'r') as f:
+        with open(yaml_file) as f:
             raw_config = yaml.safe_load(f)
 
         # Validate with Pydantic

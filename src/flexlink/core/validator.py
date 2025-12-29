@@ -10,7 +10,7 @@ from flexlink.models.validation import (
     ValidationError,
     ValidationErrorStrategy,
     ValidationResult,
-    ValidationRule
+    ValidationRule,
 )
 
 logger = logging.getLogger(__name__)

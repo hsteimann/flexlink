@@ -126,7 +126,7 @@ class ConnectorRegistry:
                 connector = connector_class(config, db_config)
                 # Initialize connection pool (database connectors only)
                 if hasattr(connector, 'initialize_pool'):
-                    await connector.initialize_pool()  # type: ignore[attr-defined]
+                    await connector.initialize_pool()
             elif connector_type == "webhook":
                 # Webhook connectors need WebhookConfig and shared HTTP client
                 if http_client is None:

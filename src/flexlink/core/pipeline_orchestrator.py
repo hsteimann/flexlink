@@ -3,18 +3,20 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, cast
 
 from flexlink.core import mapping_loader
 from flexlink.core.pipeline_context import PipelineRunContext
 from flexlink.core.pipeline_registry import PipelineRegistry
+from flexlink.core.pipeline_steps import ExtractStep, LoadStep, PipelineStep, TransformStep
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.transformation import TransformationEngine
 from flexlink.core.validator import Validator
 from flexlink.models.pipeline import (
     ErrorStrategy,
     ExecutionMetadata,
+    PipelineConfig,
     PipelineExecutionResult,
     PipelineStepConfig,
     RetryPolicy,
@@ -69,7 +71,7 @@ class PipelineOrchestrator:
                         f"Seeding context from inputs.{key}: "
                         f"{len(inputs[key])} record(s)"
                     )
-                    return inputs[key]
+                    return cast(list[dict[str, Any]], inputs[key])
 
             # No list wrapper found - treat entire dict as single record
             logger.info("Seeding context from inputs: 1 record (single dict)")
@@ -106,7 +108,7 @@ class PipelineOrchestrator:
         context = PipelineRunContext(
             run_id=str(uuid.uuid4()),
             pipeline_name=pipeline_name,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
             data=initial_records,
             metadata=ExecutionMetadata(
                 records_extracted=len(initial_records)
@@ -159,7 +161,7 @@ class PipelineOrchestrator:
 
     async def _execute_step_with_retry(
         self,
-        step,  # PipelineStep (avoid circular import)
+        step: PipelineStep,
         step_config: PipelineStepConfig,
         context: PipelineRunContext
     ) -> None:
@@ -171,7 +173,6 @@ class PipelineOrchestrator:
         """
         retry_policy = step_config.retry_policy or RetryPolicy()
         max_attempts = retry_policy.max_attempts
-        last_error = None
 
         for attempt in range(1, max_attempts + 1):
             try:
@@ -186,8 +187,6 @@ class PipelineOrchestrator:
                 return
 
             except Exception as e:
-                last_error = e
-
                 # Log the failure
                 logger.warning(
                     f"Step {step_config.name} failed on attempt {attempt}/{max_attempts}: {e}"
@@ -244,7 +243,9 @@ class PipelineOrchestrator:
 
         return delay_with_jitter
 
-    def _create_step(self, step_config: PipelineStepConfig):
+    def _create_step(
+        self, step_config: PipelineStepConfig
+    ) -> ExtractStep | TransformStep | LoadStep:
         """
         Create step instance from configuration.
 
@@ -256,7 +257,9 @@ class PipelineOrchestrator:
         if step_config.type == StepType.EXTRACT:
             # Validate required fields for EXTRACT step
             if not step_config.connector:
-                raise ValueError(f"Step '{step_config.name}': EXTRACT step requires 'connector' field")
+                raise ValueError(
+                    f"Step '{step_config.name}': EXTRACT step requires 'connector' field"
+                )
             if not step_config.method:
                 raise ValueError(f"Step '{step_config.name}': EXTRACT step requires 'method' field")
             if not step_config.path:
@@ -272,7 +275,9 @@ class PipelineOrchestrator:
         elif step_config.type == StepType.TRANSFORM:
             # Validate required fields for TRANSFORM step
             if not step_config.mapping_ref:
-                raise ValueError(f"Step '{step_config.name}': TRANSFORM step requires 'mapping_ref' field")
+                raise ValueError(
+                    f"Step '{step_config.name}': TRANSFORM step requires 'mapping_ref' field"
+                )
 
             mapping = mapping_loader.load_mapping_config(step_config.mapping_ref)
 
@@ -307,7 +312,7 @@ class PipelineOrchestrator:
     def _build_result(
         self,
         context: PipelineRunContext,
-        config  # PipelineConfig
+        config: PipelineConfig
     ) -> PipelineExecutionResult:
         """
         Build execution result from context.
@@ -319,7 +324,7 @@ class PipelineOrchestrator:
         Returns:
             PipelineExecutionResult with status and metadata
         """
-        completed_at = datetime.now(timezone.utc)
+        completed_at = datetime.now(UTC)
         duration_seconds = (completed_at - context.started_at).total_seconds()
 
         # Build step results

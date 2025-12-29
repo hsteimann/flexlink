@@ -8,7 +8,7 @@ status polling capabilities for running and completed tasks.
 import asyncio
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +19,21 @@ if TYPE_CHECKING:
     from flexlink.core.run_history import RunHistoryStorage
 
 logger = logging.getLogger(__name__)
+
+
+class MemoryLogHandler(logging.Handler):
+    """Captures log records to in-memory list."""
+    def __init__(self, log_list: list[dict[str, Any]]):
+        super().__init__()
+        self.log_list = log_list
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.log_list.append({
+            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage()
+        })
 
 
 @dataclass
@@ -33,6 +48,7 @@ class TaskInfo:
     task: asyncio.Task[None] | None = None
     result: PipelineExecutionResult | None = None
     error: str | None = None
+    logs: list[dict[str, Any]] = field(default_factory=list)
 
 
 class TaskManager:
@@ -124,6 +140,11 @@ class TaskManager:
             logger.warning(f"Task info not found for run_id {run_id}")
             return
 
+        # Setup log capture
+        log_handler = MemoryLogHandler(task_info.logs)
+        pipeline_logger = logging.getLogger("flexlink")
+        pipeline_logger.addHandler(log_handler)
+
         try:
             # Update status to running
             task_info.status = TaskStatus.RUNNING
@@ -185,6 +206,10 @@ class TaskManager:
                     f"(run_id={run_id}): {e}",
                     exc_info=True
                 )
+
+        finally:
+            # Remove log handler
+            pipeline_logger.removeHandler(log_handler)
 
     def get_task_status(self, run_id: str) -> TaskInfo | None:
         """Get status of a running or completed task.

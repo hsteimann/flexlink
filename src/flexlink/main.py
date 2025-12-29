@@ -6,15 +6,15 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from flexlink.api import dependencies, files, health, pipelines, routes
+from flexlink.api import connectors, dependencies, files, health, mappings, pipelines, routes
 from flexlink.config import get_settings, load_route_configs
 from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
 from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
+from flexlink.core.run_history import RunHistoryStorage
 from flexlink.core.scheduler_service import SchedulerService
 from flexlink.core.task_manager import TaskManager
-from flexlink.core.run_history import RunHistoryStorage
 from flexlink.core.transformation import TransformationEngine
 from flexlink.middleware.error_handling import ErrorHandlingMiddleware
 from flexlink.middleware.logging import LoggingMiddleware
@@ -175,6 +175,8 @@ app.include_router(routes.router)
 app.include_router(files.router)
 app.include_router(health.router)
 app.include_router(pipelines.router)
+app.include_router(connectors.router)
+app.include_router(mappings.router)
 
 
 @app.get("/")

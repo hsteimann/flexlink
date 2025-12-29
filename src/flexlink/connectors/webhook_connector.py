@@ -12,7 +12,7 @@ import httpx
 from flexlink.core.connector import BaseConnector
 from flexlink.models.connector import ConnectorConfig
 from flexlink.models.request import IntegrationResponse
-from flexlink.models.webhook import WebhookConfig, WebhookDeliveryResult, WebhookAuthType
+from flexlink.models.webhook import WebhookAuthType, WebhookConfig, WebhookDeliveryResult
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +190,7 @@ class WebhookConnector(BaseConnector):
                         delay = self.webhook_config.retry_backoff_factor ** (attempts - 1)
                         await self._sleep_with_jitter(delay)
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 last_error = f"Timeout after {self.webhook_config.timeout_seconds}s"
                 logger.warning(
                     f"Webhook timeout (attempt {attempts}/{self.webhook_config.max_retry_attempts}): "
@@ -298,8 +298,8 @@ class WebhookConnector(BaseConnector):
         Args:
             delay: Base delay in seconds
         """
-        import random
         import asyncio
+        import random
 
         # Add ±20% jitter
         jitter = delay * 0.2 * (2 * random.random() - 1)

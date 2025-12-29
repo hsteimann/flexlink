@@ -4,13 +4,13 @@ import logging
 import re
 from pathlib import Path
 
+from flexlink.core.mapping_loader import load_mapping_config
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.transformation import TransformationEngine
-from flexlink.core.mapping_loader import load_mapping_config
 from flexlink.core.validator import Validator
+from flexlink.models.mapping import mapping_rule_to_transformation_rule
 from flexlink.models.request import IntegrationRequest, IntegrationResponse
 from flexlink.models.transformation import RouteConfig
-from flexlink.models.mapping import mapping_rule_to_transformation_rule
 
 logger = logging.getLogger(__name__)
 

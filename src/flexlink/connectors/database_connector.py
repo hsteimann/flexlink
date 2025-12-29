@@ -7,11 +7,7 @@ from typing import Any
 
 from flexlink.core.connector import BaseConnector
 from flexlink.models.connector import ConnectorConfig
-from flexlink.models.database import (
-    DatabaseConnectorConfig,
-    DatabaseOperation,
-    DatabaseWriteResult
-)
+from flexlink.models.database import DatabaseConnectorConfig, DatabaseOperation, DatabaseWriteResult
 from flexlink.models.request import IntegrationResponse
 
 logger = logging.getLogger(__name__)

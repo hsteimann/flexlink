@@ -3,8 +3,6 @@
 import io
 import uuid
 from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
@@ -13,7 +11,7 @@ from flexlink.api.dependencies import get_registry, get_router
 from flexlink.config import get_settings
 from flexlink.connectors.file_connector import FileConnector
 from flexlink.core.router import RequestRouter
-from flexlink.models.file import FileFormat, FileForwardResult, FileProcessingResult
+from flexlink.models.file import FileFormat, FileForwardResult
 from flexlink.models.request import IntegrationRequest
 
 # File storage configuration from settings

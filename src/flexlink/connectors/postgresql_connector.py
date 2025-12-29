@@ -10,11 +10,7 @@ from psycopg_pool import AsyncConnectionPool
 
 from flexlink.connectors.database_connector import DatabaseConnector
 from flexlink.models.connector import ConnectorConfig
-from flexlink.models.database import (
-    DatabaseConnectorConfig,
-    DatabaseOperation,
-    DatabaseWriteResult
-)
+from flexlink.models.database import DatabaseConnectorConfig, DatabaseOperation, DatabaseWriteResult
 
 logger = logging.getLogger(__name__)
 

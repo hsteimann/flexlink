@@ -1,12 +1,14 @@
 """Pipeline step implementations."""
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, cast
 
 from flexlink.core.connector import BaseConnector
 from flexlink.core.pipeline_context import PipelineRunContext
+from flexlink.core.transformation import TransformationEngine
+from flexlink.core.validator import Validator
+from flexlink.models.mapping import MappingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +100,7 @@ class ExtractStep(PipelineStep):
             }
         )
 
-    async def _extract_single_request(self) -> list[dict]:
+    async def _extract_single_request(self) -> list[dict[str, Any]]:
         """Extract data from a single request without pagination."""
         response = await self.connector.send_request(
             method=self.method,
@@ -114,7 +116,7 @@ class ExtractStep(PipelineStep):
 
         return self._extract_records(response.body)
 
-    async def _extract_with_pagination(self, context: PipelineRunContext) -> list[dict]:
+    async def _extract_with_pagination(self, context: PipelineRunContext) -> list[dict[str, Any]]:
         """
         Extract data with pagination support.
 
@@ -143,7 +145,7 @@ class ExtractStep(PipelineStep):
         page_size: int,
         max_pages: int,
         context: PipelineRunContext
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Paginate using offset/limit strategy."""
         all_records = []
         offset = 0
@@ -182,7 +184,7 @@ class ExtractStep(PipelineStep):
         page_size: int,
         max_pages: int,
         context: PipelineRunContext
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Paginate using cursor/token strategy."""
         all_records = []
         cursor = None
@@ -227,7 +229,7 @@ class ExtractStep(PipelineStep):
         page_size: int,
         max_pages: int,
         context: PipelineRunContext
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Paginate using page number strategy."""
         all_records = []
         page_param = self.pagination_config.get("page_param", "page")
@@ -261,7 +263,9 @@ class ExtractStep(PipelineStep):
 
         return all_records
 
-    def _extract_records(self, response_body: dict | list | None) -> list[dict]:
+    def _extract_records(
+        self, response_body: dict[str, Any] | list[Any] | None
+    ) -> list[dict[str, Any]]:
         """
         Extract records from response body.
 
@@ -275,7 +279,7 @@ class ExtractStep(PipelineStep):
             return []
 
         if isinstance(response_body, list):
-            return response_body
+            return cast(list[dict[str, Any]], response_body)
 
         if isinstance(response_body, dict):
             data_path = self.pagination_config.get("data_path", None)
@@ -283,11 +287,11 @@ class ExtractStep(PipelineStep):
             if data_path:
                 records = self._get_nested_value(response_body, data_path)
                 if isinstance(records, list):
-                    return records
+                    return cast(list[dict[str, Any]], records)
             else:
                 for key in ["data", "items", "records", "results", "rows"]:
                     if key in response_body and isinstance(response_body[key], list):
-                        return response_body[key]
+                        return cast(list[dict[str, Any]], response_body[key])
 
             return [response_body]
 
@@ -326,10 +330,10 @@ class TransformStep(PipelineStep):
 
     def __init__(
         self,
-        transformation_engine,  # TransformationEngine
-        validator,  # Validator | None
-        mapping  # MappingConfig
-    ):
+        transformation_engine: TransformationEngine,
+        validator: Validator | None,
+        mapping: MappingConfig
+    ) -> None:
         self.transformation_engine = transformation_engine
         self.validator = validator
         self.mapping = mapping
@@ -359,13 +363,18 @@ class TransformStep(PipelineStep):
 
                     if not validation_result.valid:
                         # Handle based on strategy
-                        if self.mapping.validation.on_validation_error == "skip_row":
-                            logger.warning(f"Skipping invalid record {i}: {validation_result.errors}")
+                        val_config = self.mapping.validation
+                        if val_config and val_config.on_validation_error == "skip_row":
+                            logger.warning(
+                                f"Skipping invalid record {i}: "
+                                f"{validation_result.errors}"
+                            )
                             validation_errors.extend(validation_result.errors)
                             continue
-                        elif self.mapping.validation.on_validation_error == "fail_pipeline":
+                        elif val_config and val_config.on_validation_error == "fail_pipeline":
                             raise ValidationError(
-                                f"Validation failed for record {i}: {validation_result.errors}"
+                                f"Validation failed for record {i}: "
+                                f"{validation_result.errors}"
                             )
 
                 transformed.append(result)
@@ -447,7 +456,7 @@ class LoadStep(PipelineStep):
 
     async def _load_per_record(
         self,
-        records: list[dict],
+        records: list[dict[str, Any]],
         context: PipelineRunContext
     ) -> tuple[int, int]:
         """Load records one at a time."""
@@ -465,7 +474,8 @@ class LoadStep(PipelineStep):
 
                 if response.status_code >= 400:
                     logger.error(
-                        f"Load failed for record {i}: HTTP {response.status_code} - {response.error}"
+                        f"Load failed for record {i}: "
+                        f"HTTP {response.status_code} - {response.error}"
                     )
                     error_count += 1
                 else:
@@ -479,7 +489,7 @@ class LoadStep(PipelineStep):
 
     async def _load_batch(
         self,
-        records: list[dict],
+        records: list[dict[str, Any]],
         context: PipelineRunContext
     ) -> tuple[int, int]:
         """Load records in batches for efficiency."""
@@ -497,6 +507,7 @@ class LoadStep(PipelineStep):
 
         for batch_num, batch in enumerate(batches):
             try:
+                payload: dict[str, Any] | list[dict[str, Any]]
                 if batch_wrapper:
                     payload = {batch_wrapper: batch}
                 else:
@@ -511,7 +522,8 @@ class LoadStep(PipelineStep):
 
                 if response.status_code >= 400:
                     logger.error(
-                        f"Batch {batch_num + 1} failed: HTTP {response.status_code} - {response.error}"
+                        f"Batch {batch_num + 1} failed: "
+                        f"HTTP {response.status_code} - {response.error}"
                     )
                     error_count += len(batch)
                 else:
@@ -535,8 +547,8 @@ class LoadStep(PipelineStep):
 
     def _check_partial_failures(
         self,
-        response_body: dict | list | None,
-        batch: list[dict]
+        response_body: dict[str, Any] | list[Any] | None,
+        batch: list[dict[str, Any]]
     ) -> int:
         """Check response for partial failures."""
         if response_body is None or not isinstance(response_body, dict):

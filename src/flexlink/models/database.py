@@ -1,8 +1,8 @@
 """Database connector configuration models."""
 
 from enum import Enum
-from typing import Literal
-from pydantic import BaseModel, Field, field_validator
+
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class DatabaseOperation(str, Enum):
@@ -65,7 +65,7 @@ class ConnectionPoolConfig(BaseModel):
 
     @field_validator('max_size')
     @classmethod
-    def max_must_be_gte_min(cls, v: int, info) -> int:
+    def max_must_be_gte_min(cls, v: int, info: ValidationInfo) -> int:
         """Validate max_size >= min_size."""
         min_size = info.data.get('min_size', 2)
         if v < min_size:

@@ -1,7 +1,7 @@
 """Pipeline scheduler service for automated pipeline execution."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -153,7 +153,7 @@ class SchedulerService:
             pipeline_name: Name of the pipeline to execute
         """
         logger.info(f"[SCHEDULED] Executing pipeline '{pipeline_name}'")
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
 
         try:
             result = await self.orchestrator.execute_pipeline(
@@ -165,7 +165,7 @@ class SchedulerService:
             if self.run_history:
                 await self.run_history.save_run(result, triggered_by="schedule")
 
-            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            duration = (datetime.now(UTC) - start_time).total_seconds()
 
             if result.status == "success":
                 logger.info(
@@ -179,7 +179,7 @@ class SchedulerService:
                 )
 
         except Exception as e:
-            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+            duration = (datetime.now(UTC) - start_time).total_seconds()
             logger.error(
                 f"[SCHEDULED] Pipeline '{pipeline_name}' failed after {duration:.2f}s: {e}",
                 exc_info=True
@@ -250,6 +250,47 @@ class SchedulerService:
             })
 
         return scheduled_pipelines
+
+    def update_pipeline_schedule(
+        self, pipeline_name: str, schedule_config
+    ) -> None:
+        """
+        Update schedule for specific pipeline.
+
+        Args:
+            pipeline_name: Name of pipeline to update
+            schedule_config: New ScheduleConfig object
+
+        Raises:
+            ValueError: If schedule configuration is invalid
+        """
+        logger.info(f"Updating schedule for pipeline '{pipeline_name}'")
+
+        # Remove existing schedule if any
+        job_id_cron = f"pipeline_{pipeline_name}_cron"
+        job_id_interval = f"pipeline_{pipeline_name}_interval"
+
+        if self.scheduler.get_job(job_id_cron):
+            self.scheduler.remove_job(job_id_cron)
+        if self.scheduler.get_job(job_id_interval):
+            self.scheduler.remove_job(job_id_interval)
+
+        # Add new schedule if enabled
+        if schedule_config.enabled:
+            self._schedule_pipeline(pipeline_name, schedule_config)
+            logger.info(f"Schedule updated for pipeline '{pipeline_name}'")
+        else:
+            logger.info(f"Schedule disabled for pipeline '{pipeline_name}'")
+
+    async def run_pipeline_now(self, pipeline_name: str) -> None:
+        """
+        Trigger immediate execution of a pipeline (bypass schedule).
+
+        Args:
+            pipeline_name: Name of pipeline to execute
+        """
+        logger.info(f"Manual trigger for scheduled pipeline '{pipeline_name}'")
+        await self._execute_scheduled_pipeline(pipeline_name)
 
     def _format_schedule(self, schedule_config) -> str:
         """

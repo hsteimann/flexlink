@@ -1,9 +1,10 @@
 """Pipeline configuration models."""
 
+from datetime import datetime
 from enum import Enum
 from typing import Any
+
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 
 class StepType(str, Enum):
@@ -147,3 +148,27 @@ class PipelineExecutionResult(BaseModel):
     metadata: ExecutionMetadata
 
     error_message: str | None = None
+
+
+class ScheduleSummary(BaseModel):
+    """Compact schedule information for list views."""
+    enabled: bool
+    type: str | None = None  # "cron" | "interval" | None
+    expression: str | None = None  # cron expression or "every Xs"
+    next_run: datetime | None = None  # calculated from scheduler
+
+
+class PipelineListItemResponse(BaseModel):
+    """Single pipeline item in list view with metadata."""
+    name: str
+    description: str
+    enabled: bool
+    schedule: ScheduleSummary | None = None
+    tags: list[str] = Field(default_factory=list)
+
+
+class ScheduleUpdateRequest(BaseModel):
+    """Request model for updating pipeline schedule."""
+    enabled: bool = Field(..., description="Enable or disable schedule")
+    cron: str | None = Field(default=None, description="Cron expression")
+    interval_seconds: int | None = Field(default=None, ge=60, description="Interval in seconds")

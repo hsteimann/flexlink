@@ -1,7 +1,7 @@
 """Pipeline execution context."""
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from flexlink.models.pipeline import ExecutionMetadata
@@ -66,7 +66,7 @@ class PipelineRunContext:
             step_name=step_name,
             error_type=type(error).__name__,
             error_message=str(error),
-            timestamp=datetime.now(timezone.utc)
+            timestamp=datetime.now(UTC)
         ))
 
     def get_records_processed(self) -> int:
