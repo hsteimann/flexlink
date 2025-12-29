@@ -126,7 +126,8 @@ class ConnectorRegistry:
                 connector = connector_class(config, db_config)
                 # Initialize connection pool (database connectors only)
                 if hasattr(connector, 'initialize_pool'):
-                    await connector.initialize_pool()
+                    # Type checkers don't know about this optional method
+                    await connector.initialize_pool()  # pyright: ignore[reportAttributeAccessIssue]
             elif connector_type == "webhook":
                 # Webhook connectors need WebhookConfig and shared HTTP client
                 if http_client is None:

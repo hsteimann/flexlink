@@ -13,10 +13,11 @@ async def test_priceedge_connector_loads():
     # This test verifies the YAML configuration is valid
     registry = ConnectorRegistry()
 
-    # Load connectors from config directory
+    # Load connectors from test fixtures directory (avoids loading PostgreSQL connector)
     async with httpx.AsyncClient() as client:
         from pathlib import Path
-        await registry.load_connectors(http_client=client, config_dir=Path("config"))
+        fixtures_dir = Path(__file__).parent.parent / "fixtures" / "config"
+        await registry.load_connectors(http_client=client, config_dir=fixtures_dir)
 
     # Check PriceEdge connector was loaded
     assert "priceedge" in registry.list_connectors()

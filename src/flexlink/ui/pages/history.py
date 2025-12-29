@@ -365,17 +365,33 @@ async def history_page() -> None:
                         ui.label(run.triggered_by).classes("text-sm")
 
                 # Actions
+                # Create closures to avoid NiceGUI click event override
+                run_id_str = run.run_id
+                run_data = run
+
+                def make_view_handler(rid: str) -> Any:
+                    """Create view handler with captured run_id."""
+                    def handler() -> None:
+                        view_run(rid)
+                    return handler
+
+                def make_error_handler(r: Any) -> Any:
+                    """Create error handler with captured run data."""
+                    def handler() -> None:
+                        show_error(r)
+                    return handler
+
                 with ui.element("td").classes("p-3"):
                     with ui.row().classes("gap-1"):
                         ui.button(
                             icon="visibility",
-                            on_click=lambda r=run: view_run(r.run_id)
+                            on_click=make_view_handler(run_id_str)
                         ).props("flat round size=sm")
 
                         if run.error_message:
                             ui.button(
                                 icon="error",
-                                on_click=lambda r=run: show_error(r)
+                                on_click=make_error_handler(run_data)
                             ).props("flat round size=sm color=red")
 
         def get_status_color(status: str) -> str:

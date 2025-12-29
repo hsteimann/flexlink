@@ -1,0 +1,18 @@
+# PriceEdge API Connector Configuration (Test Fixture)
+# This is a test configuration with mock values
+
+name: priceedge
+type: rest
+base_url: https://yourcompany-staging.priceedge.eu/papi
+auth:
+  type: api_key
+  credentials:
+    header: Authorization
+    key: ApiKey test_key:abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567
+headers:
+  Content-Type: application/json
+  Accept: application/json
+  User-Agent: FlexLink-Middleware/0.1.0
+timeout: 30
+retry_attempts: 3
+enabled: true

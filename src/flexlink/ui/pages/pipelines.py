@@ -132,18 +132,33 @@ async def pipelines_page() -> None:
                                     ui.label(schedule_text).classes("text-sm text-gray-600")
 
                         # Right side: Actions
+                        # Capture pipeline_name in closure to avoid NiceGUI click event override
+                        pipeline_name_str = pipeline_data.get("name", "")
+
+                        def make_toggle_handler(data: dict[str, Any]) -> Any:
+                            """Create toggle handler with captured data."""
+                            async def handler() -> None:
+                                await toggle_details(data)
+                            return handler
+
+                        def make_run_handler(name: str) -> Any:
+                            """Create run handler with captured pipeline name."""
+                            async def handler() -> None:
+                                await run_pipeline(name)
+                            return handler
+
                         with ui.row().classes("gap-2"):
                             # Expand button (not used, but kept for future)
                             ui.button(
                                 icon="expand_more",
-                                on_click=lambda p=pipeline_data: toggle_details(p)
+                                on_click=make_toggle_handler(pipeline_data)
                             ).props("flat round")
 
                             # Run button
                             ui.button(
                                 "Run",
                                 icon="play_arrow",
-                                on_click=lambda p=pipeline_data: run_pipeline(p.get("name"))
+                                on_click=make_run_handler(pipeline_name_str)
                             ).props("color=primary")
 
                     # Expandable details section (hidden by default)
@@ -198,8 +213,13 @@ async def pipelines_page() -> None:
             """Refresh the pipelines list."""
             await load_pipelines()
 
-        async def toggle_details(pipeline_data: dict[str, Any]) -> None:
-            """Toggle pipeline details visibility."""
+        async def toggle_details(_pipeline_data: dict[str, Any]) -> None:
+            """
+            Toggle pipeline details visibility.
+
+            Note: Currently not used as expansion is handled by NiceGUI component.
+            Kept for future enhancement.
+            """
             # This is handled by the expansion component
             pass
 

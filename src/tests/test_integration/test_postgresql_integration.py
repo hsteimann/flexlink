@@ -131,9 +131,13 @@ async def test_execute_insert_success(mock_pool_class, postgres_connector):
     mock_cursor.execute.assert_called_once()
     call_args = mock_cursor.execute.call_args[0]
     query = call_args[0]
-    assert "INSERT INTO public.test_table" in query
+    # Convert Composed query to string for assertion
+    query_str = query.as_string() if hasattr(query, 'as_string') else str(query)
+    assert "INSERT INTO" in query_str
+    assert "public" in query_str
+    assert "test_table" in query_str
     # Column order may vary
-    assert ("id" in query and "name" in query and "email" in query)
+    assert ("id" in query_str and "name" in query_str and "email" in query_str)
 
 
 @pytest.mark.asyncio
