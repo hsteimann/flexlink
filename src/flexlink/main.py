@@ -164,53 +164,58 @@ app = FastAPI(
     description="Flexible REST & File Integration Platform",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 
 # Add middleware (order matters: first added = outermost = runs first)
 app.add_middleware(ErrorHandlingMiddleware)
 app.add_middleware(LoggingMiddleware)
 
-# Include routers
-app.include_router(routes.router)
-app.include_router(files.router)
-app.include_router(health.router)
-app.include_router(pipelines.router)
-app.include_router(connectors.router)
-app.include_router(mappings.router)
+# Include routers with /api prefix
+app.include_router(routes.router, prefix="/api")
+app.include_router(files.router, prefix="/api")
+app.include_router(health.router, prefix="/api")
+app.include_router(pipelines.router, prefix="/api")
+app.include_router(connectors.router, prefix="/api")
+app.include_router(mappings.router, prefix="/api")
 
-# Root endpoint (always available)
-@app.get("/")
-async def root() -> dict[str, str]:
+# API info endpoint
+@app.get("/api")
+async def api_root() -> dict[str, str]:
     """
-    Root endpoint.
+    API root endpoint.
 
     Returns:
-        Welcome message with API information
+        API information and available endpoints
     """
     return {
         "message": "FlexLink Middleware API",
         "version": "0.1.0",
-        "docs": "/docs",
-        "health": "/health",
-        "ui": "/ui",
+        "docs": "/api/docs",
+        "redoc": "/api/redoc",
+        "health": "/api/health",
+        "ui": "/",
     }
 
 
 # Initialize UI (NiceGUI)
-# UI routes: /ui, /ui/pipelines, /ui/monitoring/{run_id}, /ui/history, etc.
+# UI routes: /, /pipelines, /monitoring/{run_id}, /history, etc.
 try:
     from nicegui import ui
 
     from flexlink.ui import create_ui_app
 
     # Initialize UI with Material Design 3 theme and routes
-    # API base URL defaults to localhost:8000 (same as uvicorn default)
-    create_ui_app(api_base_url="http://localhost:8000")
+    # API base URL includes /api prefix (new architecture)
+    create_ui_app(api_base_url="http://localhost:8000/api")
 
-    # Attach NiceGUI to FastAPI app at /ui mount point
+    # Attach NiceGUI to FastAPI app at root
     # Use secret key from settings for storage encryption
-    ui.run_with(app, mount_path="/ui", storage_secret=settings.ui_secret_key)
-    logger.info("✅ FlexLink UI initialized at /ui")
+    ui.run_with(app, mount_path="/", storage_secret=settings.ui_secret_key)
+    logger.info("✅ FlexLink UI initialized at / (root)")
+    logger.info("✅ FlexLink API available at /api")
 except ImportError as e:
     logger.warning(f"UI not available: {e}")
     logger.info("API-only mode - UI disabled")

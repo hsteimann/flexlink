@@ -6,10 +6,9 @@ from typing import Any
 
 from nicegui import ui
 
-from ..api_client import FlexLinkAPIClient
+from ..api_client import FlexLinkAPIClient, get_api_base_url
 from ..components.navigation import create_navigation
 from ..components.status_badge import create_status_badge as _create_status_badge
-from ..config import ui_settings
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +170,7 @@ async def history_page() -> None:
         async def load_pipelines() -> None:
             """Load available pipelines for selector."""
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     response = await client.list_pipelines()
                     pipelines = response.get("pipelines", [])
 
@@ -207,7 +206,7 @@ async def history_page() -> None:
             error_label.visible = False
 
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     current_page: int = state["current_page"]
                     page_size: int = state["page_size"]
                     offset = (current_page - 1) * page_size
@@ -418,7 +417,7 @@ async def history_page() -> None:
             Args:
                 run_id: Run ID to view
             """
-            ui.navigate.to(f"/monitoring/{run_id}")
+            ui.navigate.to(f"monitoring/{run_id}")
 
         def show_error(run: Any) -> None:
             """

@@ -2,8 +2,7 @@
 
 from fastapi import APIRouter, Depends, Response
 
-from flexlink.api.dependencies import get_registry, get_router
-from flexlink.core.registry import ConnectorRegistry
+from flexlink.api.dependencies import get_router
 from flexlink.core.router import RequestRouter
 from flexlink.models.request import IntegrationRequest, IntegrationResponse
 
@@ -45,21 +44,8 @@ async def route_request(
     return integration_response
 
 
-@router.get("/connectors")
-async def list_connectors(
-    registry: ConnectorRegistry = Depends(get_registry),
-) -> dict[str, list[str]]:
-    """
-    List all registered connectors.
-
-    Args:
-        registry: ConnectorRegistry dependency
-
-    Returns:
-        Dictionary with list of connector names
-    """
-    connectors = registry.list_connectors()
-    return {"connectors": connectors}
+# Connector listing moved to dedicated connectors.py module
+# See: flexlink.api.connectors for the full connector metadata endpoint
 
 
 @router.get("/routes")

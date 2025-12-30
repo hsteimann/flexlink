@@ -40,7 +40,7 @@ async def render(api_base_url: str) -> None:
                 title="Pipelines",
                 description="View, configure, and execute data pipelines",
                 icon="view_list",
-                route="/pipelines",
+                route="pipelines",
                 color="primary",
             )
 
@@ -49,7 +49,7 @@ async def render(api_base_url: str) -> None:
                 title="Run History",
                 description="Browse past pipeline executions and logs",
                 icon="history",
-                route="/history",
+                route="history",
                 color="secondary",
             )
 
@@ -58,7 +58,7 @@ async def render(api_base_url: str) -> None:
                 title="Connectors",
                 description="Manage data source and destination connectors",
                 icon="cable",
-                route="/connectors",
+                route="connectors",
                 color="tertiary",
             )
 
@@ -67,7 +67,7 @@ async def render(api_base_url: str) -> None:
                 title="Schedules",
                 description="View and manage pipeline schedules",
                 icon="schedule",
-                route="/schedules",
+                route="schedules",
                 color="primary",
             )
 
@@ -76,7 +76,7 @@ async def render(api_base_url: str) -> None:
                 title="API Docs",
                 description="Interactive API documentation (Swagger UI)",
                 icon="api",
-                route="/docs",
+                route="/api/docs",  # Absolute path - goes to FastAPI API docs
                 color="secondary",
             )
 
@@ -85,7 +85,7 @@ async def render(api_base_url: str) -> None:
                 title="Settings",
                 description="Configure application settings",
                 icon="settings",
-                route="/settings",
+                route="settings",
                 color="tertiary",
             )
 

@@ -10,7 +10,7 @@ class UISettings(BaseSettings):
     """UI-specific settings."""
 
     api_base_url: str = Field(
-        default="http://localhost:8000",
+        default="http://localhost:8000/api",
         description="Base URL for FlexLink API"
     )
     refresh_interval_seconds: int = Field(

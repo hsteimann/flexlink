@@ -51,18 +51,8 @@ def create_ui_app(api_base_url: str = "http://localhost:8000") -> None:
             logger.warning("Index page not yet implemented, showing placeholder")
             _render_placeholder_page("Dashboard", "dashboard")
 
-    @ui.page("/pipelines")
-    async def pipelines_page() -> None:
-        """Pipelines management page."""
-        initialize_theme_from_storage()
-
-        try:
-            from .pages import pipelines
-
-            await pipelines.render(api_base_url)  # type: ignore[attr-defined]
-        except ImportError:
-            logger.warning("Pipelines page not yet implemented, showing placeholder")
-            _render_placeholder_page("Pipelines", "view_list")
+    # Pipelines page is registered via @ui.page decorator in pages/pipelines.py
+    # No duplicate registration needed here
 
     @ui.page("/pipelines/{name}")
     async def pipeline_detail_page(name: str) -> None:
@@ -77,18 +67,8 @@ def create_ui_app(api_base_url: str = "http://localhost:8000") -> None:
             logger.warning("Pipeline detail page not yet implemented, showing placeholder")
             _render_placeholder_page(f"Pipeline: {name}", "analytics")
 
-    @ui.page("/connectors")
-    async def connectors_page() -> None:
-        """Connectors management page."""
-        initialize_theme_from_storage()
-
-        try:
-            from .pages import connectors  # type: ignore[attr-defined]
-
-            await connectors.render(api_base_url)
-        except ImportError:
-            logger.warning("Connectors page not yet implemented, showing placeholder")
-            _render_placeholder_page("Connectors", "link")
+    # Connectors page is registered via @ui.page decorator in pages/connectors.py
+    # No separate route registration needed here
 
     @ui.page("/schedules")
     async def schedules_page() -> None:
@@ -103,18 +83,8 @@ def create_ui_app(api_base_url: str = "http://localhost:8000") -> None:
             logger.warning("Schedules page not yet implemented, showing placeholder")
             _render_placeholder_page("Schedules", "schedule")
 
-    @ui.page("/history")
-    async def history_page() -> None:
-        """Pipeline execution history page."""
-        initialize_theme_from_storage()
-
-        try:
-            from .pages import history
-
-            await history.render(api_base_url)  # type: ignore[attr-defined]
-        except ImportError:
-            logger.warning("History page not yet implemented, showing placeholder")
-            _render_placeholder_page("History", "history")
+    # History page is registered via @ui.page decorator in pages/history.py
+    # No duplicate registration needed here
 
     @ui.page("/settings")
     async def settings_page() -> None:
@@ -128,6 +98,14 @@ def create_ui_app(api_base_url: str = "http://localhost:8000") -> None:
         except ImportError:
             logger.warning("Settings page not yet implemented, showing placeholder")
             _render_placeholder_page("Settings", "settings")
+
+    # Import page modules to register their @ui.page decorators
+    # This must happen after placeholder routes are defined to avoid conflicts
+    try:
+        from .pages import connectors, history, monitoring, pipelines  # noqa: F401
+        logger.info("Loaded UI page modules: pipelines, history, monitoring, connectors")
+    except ImportError as e:
+        logger.warning(f"Some UI page modules could not be loaded: {e}")
 
     # Configure app metadata
     ui.page_title("FlexLink - Pipeline Monitoring")
@@ -147,7 +125,7 @@ def _render_placeholder_page(title: str, icon: str) -> None:
         ui.icon(icon, size="4rem").classes("text-primary mb-4")
         ui.label(title).classes("text-h4 mb-2")
         ui.label("This page is under construction").classes("text-subtitle1 text-medium-emphasis")
-        ui.button("Go to Dashboard", on_click=lambda: ui.navigate.to("/")).classes(
+        ui.button("Go to Pipelines", on_click=lambda: ui.navigate.to("pipelines")).classes(
             "mt-8"
         ).props("flat color=primary")
 
@@ -174,16 +152,16 @@ def create_header(on_theme_toggle: Callable[[], None] | None = None) -> None:
                 ui.button("Dashboard", on_click=lambda: ui.navigate.to("/")).props(
                     "flat dense color=on-primary"
                 )
-                ui.button("Pipelines", on_click=lambda: ui.navigate.to("/pipelines")).props(
+                ui.button("Pipelines", on_click=lambda: ui.navigate.to("pipelines")).props(
                     "flat dense color=on-primary"
                 )
-                ui.button("Connectors", on_click=lambda: ui.navigate.to("/connectors")).props(
+                ui.button("Connectors", on_click=lambda: ui.navigate.to("connectors")).props(
                     "flat dense color=on-primary"
                 )
-                ui.button("Schedules", on_click=lambda: ui.navigate.to("/schedules")).props(
+                ui.button("Schedules", on_click=lambda: ui.navigate.to("schedules")).props(
                     "flat dense color=on-primary"
                 )
-                ui.button("History", on_click=lambda: ui.navigate.to("/history")).props(
+                ui.button("History", on_click=lambda: ui.navigate.to("history")).props(
                     "flat dense color=on-primary"
                 )
 
@@ -196,7 +174,7 @@ def create_header(on_theme_toggle: Callable[[], None] | None = None) -> None:
                     ).tooltip("Toggle theme")
 
                 ui.button(
-                    icon="settings", on_click=lambda: ui.navigate.to("/settings")
+                    icon="settings", on_click=lambda: ui.navigate.to("settings")
                 ).props("flat round dense color=on-primary").tooltip("Settings")
 
 
@@ -216,25 +194,25 @@ def create_drawer_navigation() -> None:
             ).classes("w-full")
 
             ui.button(
-                "Pipelines", icon="view_list", on_click=lambda: ui.navigate.to("/pipelines")
+                "Pipelines", icon="view_list", on_click=lambda: ui.navigate.to("pipelines")
             ).props("flat align=left color=primary").classes("w-full")
 
             ui.button(
-                "Connectors", icon="link", on_click=lambda: ui.navigate.to("/connectors")
+                "Connectors", icon="link", on_click=lambda: ui.navigate.to("connectors")
             ).props("flat align=left color=primary").classes("w-full")
 
             ui.button(
-                "Schedules", icon="schedule", on_click=lambda: ui.navigate.to("/schedules")
+                "Schedules", icon="schedule", on_click=lambda: ui.navigate.to("schedules")
             ).props("flat align=left color=primary").classes("w-full")
 
-            ui.button("History", icon="history", on_click=lambda: ui.navigate.to("/history")).props(
+            ui.button("History", icon="history", on_click=lambda: ui.navigate.to("history")).props(
                 "flat align=left color=primary"
             ).classes("w-full")
 
             ui.separator()
 
             ui.button(
-                "Settings", icon="settings", on_click=lambda: ui.navigate.to("/settings")
+                "Settings", icon="settings", on_click=lambda: ui.navigate.to("settings")
             ).props("flat align=left color=primary").classes("w-full")
 
 

@@ -15,6 +15,33 @@ from flexlink.models.pipeline import (
 logger = logging.getLogger(__name__)
 
 
+def get_api_base_url() -> str:
+    """
+    Get API base URL from user storage with fallback to settings.
+
+    Returns:
+        API base URL (with /api prefix after refactoring)
+
+    Notes:
+        - First tries to read from app.storage.user["api_base_url"]
+        - Falls back to ui_settings.api_base_url if storage not available
+        - This allows runtime configuration while maintaining sensible defaults
+    """
+    try:
+        from nicegui import app
+        # Try to get from user storage (set by create_ui_app)
+        if hasattr(app, 'storage') and hasattr(app.storage, 'user'):
+            stored_url = app.storage.user.get("api_base_url")
+            if stored_url:
+                return stored_url
+    except Exception as e:
+        logger.debug(f"Could not read api_base_url from storage: {e}")
+
+    # Fallback to settings
+    from .config import ui_settings
+    return ui_settings.api_base_url
+
+
 class FlexLinkAPIError(Exception):
     """Base exception for FlexLink API errors."""
 
@@ -66,7 +93,12 @@ class FlexLinkAPIClient:
         )
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        _exc_type: Any,
+        _exc_val: Any,
+        _exc_tb: Any,
+    ) -> None:
         """Async context manager exit."""
         if self._client:
             await self._client.aclose()

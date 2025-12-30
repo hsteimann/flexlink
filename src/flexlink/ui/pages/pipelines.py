@@ -5,10 +5,9 @@ from typing import Any
 
 from nicegui import ui
 
-from ..api_client import FlexLinkAPIClient
+from ..api_client import FlexLinkAPIClient, get_api_base_url
 from ..components.navigation import create_navigation
 from ..components.status_badge import create_status_badge as _create_status_badge
-from ..config import ui_settings
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +63,9 @@ async def pipelines_page() -> None:
         # Pipeline cards container
         pipelines_container = ui.column().classes("w-full gap-4")
 
+        # Track which pipelines are expanded (to preserve state during refresh)
+        expanded_pipelines: set[str] = set()
+
         async def load_pipelines() -> None:
             """Load and display pipelines."""
             loading.visible = True
@@ -71,7 +73,7 @@ async def pipelines_page() -> None:
             pipelines_container.clear()
 
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     response = await client.list_pipelines()
                     pipelines_list = response.get("pipelines", [])
 
@@ -161,9 +163,12 @@ async def pipelines_page() -> None:
                                 on_click=make_run_handler(pipeline_name_str)
                             ).props("color=primary")
 
-                    # Expandable details section (hidden by default)
+                    # Expandable details section
+                    # Restore expansion state if it was previously expanded
+                    pipeline_name = pipeline_data.get("name", "")
                     with ui.expansion().classes("w-full") as expansion:
-                        expansion.value = False
+                        # Restore previous expansion state
+                        expansion.value = pipeline_name in expanded_pipelines
 
                         with ui.column().classes("w-full p-4 gap-4"):
                             ui.label("Configuration").classes("text-lg font-semibold")
@@ -174,12 +179,9 @@ async def pipelines_page() -> None:
                             async def load_config() -> None:
                                 """Load detailed pipeline configuration."""
                                 try:
-                                    api_url = ui_settings.api_base_url
+                                    api_url = get_api_base_url()
                                     async with FlexLinkAPIClient(api_url) as client:
-                                        pipeline_name = pipeline_data.get("name", "")
-                                        config = await client.get_pipeline(
-                                            pipeline_name
-                                        )
+                                        config = await client.get_pipeline(pipeline_name)
 
                                         with config_container:
                                             config_container.clear()
@@ -202,12 +204,21 @@ async def pipelines_page() -> None:
                                         )
                                         ui.label(err_msg).classes("text-red-500")
 
-                            # Store the load function for the expansion
+                            # Track expansion state and load config when expanded
                             async def on_expand(e: Any) -> None:
                                 if e.value:
+                                    # Add to expanded set and load config
+                                    expanded_pipelines.add(pipeline_name)
                                     await load_config()
+                                else:
+                                    # Remove from expanded set
+                                    expanded_pipelines.discard(pipeline_name)
 
                             expansion.on_value_change(on_expand)
+
+                            # Load config immediately if already expanded
+                            if expansion.value:
+                                await load_config()
 
         async def refresh_pipelines() -> None:
             """Refresh the pipelines list."""
@@ -231,7 +242,7 @@ async def pipelines_page() -> None:
                 pipeline_name: Name of pipeline to run
             """
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     result = await client.execute_pipeline(
                         pipeline_name, background=True
                     )
@@ -246,7 +257,7 @@ async def pipelines_page() -> None:
                         )
 
                         # Navigate to monitoring page
-                        ui.navigate.to(f"/monitoring/{run_id}")
+                        ui.navigate.to(f"monitoring/{run_id}")
                     else:
                         ui.notify(
                             f"Pipeline '{pipeline_name}' started but no run ID returned",
@@ -265,4 +276,8 @@ async def pipelines_page() -> None:
         await load_pipelines()
 
         # Auto-refresh timer (every 5 seconds)
-        ui.timer(5.0, lambda: load_pipelines())
+        # Create async wrapper for timer callback
+        async def refresh_callback() -> None:
+            await load_pipelines()
+
+        ui.timer(5.0, refresh_callback)

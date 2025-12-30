@@ -8,10 +8,9 @@ from nicegui import ui
 
 from flexlink.models.pipeline import TaskStatus
 
-from ..api_client import FlexLinkAPIClient
+from ..api_client import FlexLinkAPIClient, get_api_base_url
 from ..components.navigation import create_navigation
 from ..components.status_badge import create_status_badge as _create_status_badge
-from ..config import ui_settings
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +161,7 @@ async def monitoring_page(run_id: str) -> None:
         async def update_status() -> None:
             """Update status information."""
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     # Get run status
                     status = await client.get_run_status(run_id)
 
@@ -247,7 +246,7 @@ async def monitoring_page(run_id: str) -> None:
                 return
 
             try:
-                async with FlexLinkAPIClient(ui_settings.api_base_url) as client:
+                async with FlexLinkAPIClient(get_api_base_url()) as client:
                     logs_response = await client.get_run_logs(
                         str(state["pipeline_name"]),
                         run_id,
@@ -342,4 +341,8 @@ async def monitoring_page(run_id: str) -> None:
 
         # Poll every 2 seconds if not completed
         if not state["is_completed"]:
-            state["timer"] = ui.timer(2.0, lambda: update_status())
+            # Create async wrapper for timer callback
+            async def poll_callback() -> None:
+                await update_status()
+
+            state["timer"] = ui.timer(2.0, poll_callback)

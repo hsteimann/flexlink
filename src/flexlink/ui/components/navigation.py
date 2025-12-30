@@ -33,13 +33,13 @@ def create_navigation() -> None:
             ).classes("md3-button-text")
 
             ui.button(
-                "Pipelines", icon="view_list", on_click=lambda: ui.navigate.to("/pipelines")
+                "Pipelines", icon="view_list", on_click=lambda: ui.navigate.to("pipelines")
             ).props("flat").classes("md3-button-text")
 
-            ui.button("History", icon="history", on_click=lambda: ui.navigate.to("/history")).props(
+            ui.button("History", icon="history", on_click=lambda: ui.navigate.to("history")).props(
                 "flat"
             ).classes("md3-button-text")
 
             ui.button(
-                "Connectors", icon="cable", on_click=lambda: ui.navigate.to("/connectors")
+                "Connectors", icon="cable", on_click=lambda: ui.navigate.to("connectors")
             ).props("flat").classes("md3-button-text")
