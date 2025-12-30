@@ -1,0 +1,42 @@
+name: priceedge-to-output
+description: Extract item ID and price from PriceEdge response for JSON output
+version: "1.0"
+
+mappings:
+  # PriceEdge returns cd_ItemNumber in response (their API field name)
+  - source_field: cd_ItemNumber
+    target_field: item_id
+    required: true
+
+  - source_field: Value
+    target_field: price
+    transformation: float
+    required: true
+
+  - source_field: cd_StoreNumber
+    target_field: store_number
+    required: false
+
+  - source_field: dt_Created
+    target_field: timestamp
+    transformation: date_format
+    required: false
+
+  # Optional: Keep original item_no from our XML for reference
+  - source_field: item_no
+    target_field: original_item_no
+    required: false
+
+validation:
+  rules:
+    - field: item_id
+      type: string
+      required: true
+
+    - field: price
+      type: float
+      min: 0
+      required: true
+
+  on_validation_error: log_and_continue
+  log_errors: true

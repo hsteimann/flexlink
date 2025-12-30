@@ -8,13 +8,13 @@ Verifies that:
 - Errors are handled gracefully
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 from typing import Any
 
-from flexlink.core.router import RequestRouter
-from flexlink.core.registry import ConnectorRegistry
+import pytest
+
 from flexlink.core.connector import BaseConnector
+from flexlink.core.registry import ConnectorRegistry
+from flexlink.core.router import RequestRouter
 from flexlink.models.connector import ConnectorConfig
 from flexlink.models.request import IntegrationRequest, IntegrationResponse
 from flexlink.models.transformation import RouteConfig, TransformationRule

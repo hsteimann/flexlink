@@ -5,16 +5,16 @@ Verifies that HTTP status codes in IntegrationResponse are properly
 propagated to the actual HTTP response status code.
 """
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+from fastapi.testclient import TestClient
+
 from flexlink.api.dependencies import get_registry, get_router
-from flexlink.main import app
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
-from flexlink.models.request import IntegrationRequest, IntegrationResponse
-from flexlink.models.transformation import RouteConfig
+from flexlink.main import app
+from flexlink.models.request import IntegrationResponse
 
 
 @pytest.fixture

@@ -1,13 +1,14 @@
 """Tests for webhook connector."""
 
-import pytest
-import respx
-import httpx
 from unittest.mock import AsyncMock, patch
 
+import httpx
+import pytest
+import respx
+
 from flexlink.connectors.webhook_connector import WebhookConnector
-from flexlink.models.connector import ConnectorConfig, AuthConfig
-from flexlink.models.webhook import WebhookConfig, WebhookAuthType
+from flexlink.models.connector import AuthConfig, ConnectorConfig
+from flexlink.models.webhook import WebhookAuthType, WebhookConfig
 
 
 @pytest.fixture

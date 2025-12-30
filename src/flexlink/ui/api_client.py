@@ -217,7 +217,7 @@ class FlexLinkAPIClient:
             run_id: Pipeline run ID
 
         Returns:
-            Run status information
+            Run status information (converted from PipelineExecutionResult if needed)
 
         Raises:
             httpx.HTTPStatusError: On 4xx/5xx responses
@@ -225,7 +225,38 @@ class FlexLinkAPIClient:
         response = await self.client.get(f"/v1/pipelines/runs/{run_id}")
         response.raise_for_status()
         data = response.json()
-        return PipelineRunStatus(**data)
+
+        # The API returns either PipelineExecutionResult or PipelineRunStatus
+        # PipelineExecutionResult has status: str ("success", "partial", "failed")
+        # PipelineRunStatus has status: TaskStatus enum
+
+        # Check if this is a PipelineExecutionResult by looking for "steps" field
+        if "steps" in data:
+            # This is a PipelineExecutionResult - convert to PipelineRunStatus
+            from flexlink.models.pipeline import TaskStatus
+
+            # Map execution result status to TaskStatus
+            status_mapping = {
+                "success": TaskStatus.COMPLETED,
+                "partial": TaskStatus.COMPLETED,
+                "failed": TaskStatus.FAILED
+            }
+
+            result_status = data.get("status", "failed")
+            task_status = status_mapping.get(result_status, TaskStatus.FAILED)
+
+            return PipelineRunStatus(
+                run_id=data["run_id"],
+                pipeline_name=data["pipeline_name"],
+                status=task_status,
+                started_at=data.get("started_at"),
+                completed_at=data.get("completed_at"),
+                duration_seconds=data.get("duration_seconds"),
+                error_message=data.get("error_message")
+            )
+        else:
+            # This is already a PipelineRunStatus
+            return PipelineRunStatus(**data)
 
     async def get_pipeline_runs(
         self,

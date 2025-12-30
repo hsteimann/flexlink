@@ -1,7 +1,10 @@
 """Pipeline step implementations."""
 
 import logging
+import uuid
 from abc import ABC, abstractmethod
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 
 from flexlink.core.connector import BaseConnector
@@ -85,7 +88,7 @@ class ExtractStep(PipelineStep):
         if self.pagination_config.get("enabled", False):
             records = await self._extract_with_pagination(context)
         else:
-            records = await self._extract_single_request()
+            records = await self._extract_single_request(context)
 
         # Update context (mutation)
         context.data = records
@@ -100,13 +103,25 @@ class ExtractStep(PipelineStep):
             }
         )
 
-    async def _extract_single_request(self) -> list[dict[str, Any]]:
+    async def _extract_single_request(self, context: PipelineRunContext) -> list[dict[str, Any]]:
         """Extract data from a single request without pagination."""
+        # Handle template variables in request body for batch operations
+        body = self.params.get("body")
+        if body:
+            body = self._substitute_context_variables(body, context)
+
+        # For file connector, pass full params dict; for others, pass query_params only
+        from flexlink.connectors.file_connector import FileConnector
+        if isinstance(self.connector, FileConnector):
+            params_to_pass = self.params
+        else:
+            params_to_pass = self.params.get("query_params")
+
         response = await self.connector.send_request(
             method=self.method,
             path=self.path,
-            data=self.params.get("body"),
-            params=self.params.get("query_params")
+            data=body,
+            params=params_to_pass
         )
 
         if response.status_code >= 400:
@@ -324,6 +339,47 @@ class ExtractStep(PipelineStep):
 
         return value
 
+    def _substitute_context_variables(
+        self,
+        body: dict[str, Any],
+        context: PipelineRunContext
+    ) -> dict[str, Any]:
+        """
+        Replace template variables in request body with values from context.
+
+        Handles special cases:
+        - {{item_ids}} → comma-separated list of item IDs from context.data
+        - {{timestamp}} → current timestamp
+
+        Args:
+            body: Request body template with {{variables}}
+            context: Pipeline context with data
+
+        Returns:
+            Body with variables substituted
+        """
+        import json
+
+        body_str = json.dumps(body)
+
+        # Handle {{item_ids}} - aggregate from context.data
+        if "{{item_ids}}" in body_str:
+            item_ids = [
+                str(record.get("item_id", record.get("cd_ItemNumber", "")))
+                for record in context.data
+                if record.get("item_id") or record.get("cd_ItemNumber")
+            ]
+            comma_separated = ",".join(item_ids)
+            body_str = body_str.replace('"{{item_ids}}"', f'"{comma_separated}"')
+            body_str = body_str.replace("{{item_ids}}", comma_separated)
+
+        # Handle {{timestamp}}
+        if "{{timestamp}}" in body_str:
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            body_str = body_str.replace("{{timestamp}}", timestamp)
+
+        return cast(dict[str, Any], json.loads(body_str))
+
 
 class TransformStep(PipelineStep):
     """Transform data using mapping configuration."""
@@ -427,6 +483,12 @@ class LoadStep(PipelineStep):
         """
         if not context.data:
             logger.warning("No data to load")
+            return
+
+        # Special handling for file connector
+        from flexlink.connectors.file_connector import FileConnector
+        if isinstance(self.connector, FileConnector):
+            await self._load_to_file(context)
             return
 
         batch_enabled = self.batch_config.get("enabled", False)
@@ -574,3 +636,58 @@ class LoadStep(PipelineStep):
                     error_count += 1
 
         return error_count
+
+    async def _load_to_file(self, context: PipelineRunContext) -> None:
+        """
+        Load context data to file output.
+
+        Args:
+            context: Pipeline execution context with data to write
+
+        Raises:
+            LoadError: If file write fails or invalid format specified
+        """
+        try:
+            # Get output format from params (default to JSON)
+            from flexlink.models.file import FileFormat
+            output_format_str = self.params.get("output_format", "json").upper()
+            output_format = FileFormat[output_format_str]
+
+            # Generate filename
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            filename = self.params.get("filename", f"output_{timestamp}.{output_format.value}")
+            # Replace {{timestamp}} placeholder if present
+            filename = filename.replace("{{timestamp}}", timestamp)
+
+            # Convert context data to DataFrame
+            import pandas as pd
+            df = pd.DataFrame(context.data)
+
+            # Use appropriate parser to generate file content
+            from flexlink.parsers.parser_factory import ParserFactory
+            factory = ParserFactory()
+            parser = factory.get_parser(output_format)
+            file_bytes = await parser.generate(df)
+
+            # Write to output directory
+            output_dir = Path("data/downloads")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            file_id = str(uuid.uuid4())
+            output_path = output_dir / f"{file_id}.{output_format.value}"
+            output_path.write_bytes(file_bytes)
+
+            # Update context metadata
+            context.metadata.records_loaded = len(context.data)
+            context.metadata.custom_metadata["output_file_id"] = file_id
+            context.metadata.custom_metadata["output_file_path"] = str(output_path)
+            context.metadata.custom_metadata["output_filename"] = filename
+
+            logger.info(
+                f"Wrote {len(context.data)} records to {output_path} "
+                f"(file_id: {file_id})"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to write file output: {e}")
+            raise LoadError(f"File write failed: {e}") from e

@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  flexlink:
+    # Override with development settings
+    volumes:
+      # Mount source code for live updates (requires container restart for Python changes)
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./data/uploads:/app/data/uploads
+      - ./data/downloads:/app/data/downloads
+      - ./data/samples:/app/data/samples
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      # Add PriceEdge credentials if needed
+      # - PRICEEDGE_BASE_URL=https://api.priceedge.example.com
+      # - PRICEEDGE_KEY_NAME=your_key_name
+      # - PRICEEDGE_API_TOKEN=your_token
+    command: ["uvicorn", "flexlink.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

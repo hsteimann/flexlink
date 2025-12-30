@@ -1,25 +1,24 @@
 """Tests for pipeline steps."""
 
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import httpx
 import pytest
 import respx
-import httpx
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
 
-from flexlink.core.pipeline_steps import (
-    ExtractStep,
-    TransformStep,
-    LoadStep,
-    ExtractError,
-    TransformError,
-    LoadError,
-    ValidationError
-)
-from flexlink.core.pipeline_context import PipelineRunContext
-from flexlink.models.connector import ConnectorConfig, AuthConfig
-from flexlink.models.pipeline import ExecutionMetadata
 from flexlink.connectors.rest_connector import RestConnector
-
+from flexlink.core.pipeline_context import PipelineRunContext
+from flexlink.core.pipeline_steps import (
+    ExtractError,
+    ExtractStep,
+    LoadError,
+    LoadStep,
+    TransformStep,
+    ValidationError,
+)
+from flexlink.models.connector import AuthConfig, ConnectorConfig
+from flexlink.models.pipeline import ExecutionMetadata
 
 # Fixtures
 
@@ -36,7 +35,7 @@ def pipeline_context():
     return PipelineRunContext(
         run_id="test-run-123",
         pipeline_name="test-pipeline",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         data=[],
         metadata=ExecutionMetadata()
     )

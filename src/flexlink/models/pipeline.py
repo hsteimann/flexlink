@@ -97,6 +97,7 @@ class ExecutionMetadata(BaseModel):
     records_transformed: int = 0
     records_loaded: int = 0
     validation_errors: int = 0
+    custom_metadata: dict[str, Any] = Field(default_factory=dict, description="Custom step metadata")
 
 
 class TaskStatus(str, Enum):

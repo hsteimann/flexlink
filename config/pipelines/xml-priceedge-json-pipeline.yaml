@@ -1,0 +1,73 @@
+name: xml-priceedge-json-pipeline
+description: Extract product IDs from XML, query PriceEdge for prices, output JSON
+version: "1.0"
+enabled: true
+tags:
+  - xml
+  - priceedge
+  - etl
+  - production
+
+steps:
+  # Step 1: Parse XML input file
+  - name: parse_xml_products
+    type: extract
+    connector: file
+    method: GET
+    path: /read
+    params:
+      file_path: data/samples/article_deu_DEU.xml
+      format: xml
+    on_error: fail_pipeline
+    description: "Parse XML file containing product information"
+
+  # Step 2: Transform XML data for PriceEdge batch query
+  - name: prepare_priceedge_request
+    type: transform
+    mapping_ref: xml-to-priceedge-request
+    on_error: fail_pipeline
+    description: "Extract item IDs and prepare for batch API query"
+
+  # Step 3: Query PriceEdge API for prices (batch)
+  - name: query_priceedge_prices
+    type: extract
+    connector: priceedge
+    method: POST
+    path: api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+    params:
+      method: POST
+      body:
+        page: 1
+        nrOfRecords: 100
+        filters:
+          - columnName: cd_ItemNumber
+            op: containsAny
+            value: "{{item_ids}}"  # Will be populated from context
+        # Note: fields parameter removed - let API return all fields
+        # Filtering happens in the transformation step instead
+    pagination:
+      data_path: Data.data  # Extract price records from PriceEdge response
+    retry_policy:
+      max_attempts: 3
+      backoff_strategy: exponential
+      backoff_factor: 2.0
+      initial_delay_seconds: 1.0
+    on_error: fail_pipeline
+    description: "Batch query PriceEdge API for product prices"
+
+  # Step 4: Transform PriceEdge response to clean output format
+  - name: format_output_data
+    type: transform
+    mapping_ref: priceedge-to-output
+    on_error: continue
+    description: "Map PriceEdge response to output format (item_id, price)"
+
+  # Step 5: Write JSON output file
+  - name: write_json_output
+    type: load
+    connector: file
+    params:
+      output_format: json
+      filename: "product_prices_{{timestamp}}.json"
+    on_error: fail_pipeline
+    description: "Write final results to JSON file"

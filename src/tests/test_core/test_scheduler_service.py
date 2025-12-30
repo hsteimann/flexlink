@@ -1,23 +1,22 @@
 """Tests for pipeline scheduler service."""
 
-import asyncio
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
-from flexlink.core.scheduler_service import SchedulerService
-from flexlink.core.pipeline_registry import PipelineRegistry
+import pytest
+
 from flexlink.core.pipeline_orchestrator import PipelineOrchestrator
+from flexlink.core.pipeline_registry import PipelineRegistry
+from flexlink.core.scheduler_service import SchedulerService
 from flexlink.models.pipeline import (
+    ErrorStrategy,
+    ExecutionMetadata,
     PipelineConfig,
+    PipelineExecutionResult,
     PipelineStepConfig,
     ScheduleConfig,
     StepType,
-    ErrorStrategy,
-    PipelineExecutionResult,
-    ExecutionMetadata
 )
-
 
 # Fixtures
 
@@ -38,8 +37,8 @@ def mock_orchestrator():
         run_id="test-run-123",
         pipeline_name="test-pipeline",
         status="success",
-        started_at=datetime.now(timezone.utc),
-        completed_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
         duration_seconds=1.5,
         steps=[],
         metadata=ExecutionMetadata(),

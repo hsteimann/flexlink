@@ -36,7 +36,7 @@ async def pipelines_page() -> None:
     - Data table showing all pipelines
     - Click to expand configuration
     - Run pipeline button
-    - Auto-refresh every 5 seconds
+    - Manual refresh button (auto-refresh disabled to allow browsing configs)
     """
     # Header with navigation
     create_navigation()
@@ -275,9 +275,5 @@ async def pipelines_page() -> None:
         # Initial load
         await load_pipelines()
 
-        # Auto-refresh timer (every 5 seconds)
-        # Create async wrapper for timer callback
-        async def refresh_callback() -> None:
-            await load_pipelines()
-
-        ui.timer(5.0, refresh_callback)
+        # Auto-refresh disabled - use manual refresh button instead
+        # Users can browse pipeline configs without being interrupted

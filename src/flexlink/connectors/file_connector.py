@@ -46,21 +46,84 @@ class FileConnector(BaseConnector):
         **kwargs: Any,
     ) -> IntegrationResponse:
         """
-        Process file request (not typically used for file connector).
+        Process file request for pipeline integration.
 
-        File connector primarily uses process_file() and convert_format() methods.
+        Supports:
+        - GET /read: Read and parse file from file_path parameter
 
         Args:
-            method: Operation type (e.g., "PARSE", "CONVERT")
-            path: File format or operation
-            data: Request data
-            **kwargs: Additional parameters
+            method: HTTP method (GET for file reading)
+            path: Operation path (/read)
+            data: Request data (not used for file reading)
+            **kwargs: Additional parameters including params with file_path and format
 
         Returns:
-            IntegrationResponse with processing results
+            IntegrationResponse with parsed records
+
+        Raises:
+            ValueError: If file_path or format is missing or invalid
         """
-        # This is a minimal implementation for interface compliance
-        # Real file processing happens in process_file() and convert_format()
+        # Handle file read operations for pipeline integration
+        if method == "GET" and path == "/read":
+            params = kwargs.get("params", {})
+            file_path = params.get("file_path")
+            file_format = params.get("format")
+
+            if not file_path:
+                return IntegrationResponse(
+                    status_code=400,
+                    error="Missing required parameter: file_path",
+                )
+
+            if not file_format:
+                return IntegrationResponse(
+                    status_code=400,
+                    error="Missing required parameter: format",
+                )
+
+            try:
+                # Convert format string to FileFormat enum
+                format_enum = FileFormat(file_format)
+            except ValueError:
+                return IntegrationResponse(
+                    status_code=400,
+                    error=f"Invalid format: {file_format}. Supported: csv, json, xml",
+                )
+
+            try:
+                # Read file from disk
+                import pathlib
+                file_full_path = pathlib.Path(file_path)
+                if not file_full_path.exists():
+                    return IntegrationResponse(
+                        status_code=404,
+                        error=f"File not found: {file_path}",
+                    )
+
+                file_content = file_full_path.read_bytes()
+
+                # Parse file into records
+                records = await self.parse_to_records(
+                    file_content=file_content,
+                    source_format=format_enum,
+                )
+
+                logger.info(f"Read {len(records)} records from {file_path}")
+
+                # Return records as response body
+                return IntegrationResponse(
+                    status_code=200,
+                    body=records,  # Return records directly as list
+                )
+
+            except Exception as e:
+                logger.error(f"Failed to read file {file_path}: {e}")
+                return IntegrationResponse(
+                    status_code=500,
+                    error=f"Failed to read file: {str(e)}",
+                )
+
+        # Default response for unsupported operations
         return IntegrationResponse(
             status_code=200,
             body={"message": "File connector ready"},

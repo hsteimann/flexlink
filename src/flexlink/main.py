@@ -27,6 +27,23 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
+# Filter out NiceGUI's harmless "Request is not set" errors
+class NiceGUIErrorFilter(logging.Filter):
+    """Filter out NiceGUI's prune_user_storage RuntimeError logs."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Filter out 'Request is not set' errors from NiceGUI timer."""
+        if record.name == "nicegui" and record.levelname == "ERROR":
+            if "Request is not set" in record.getMessage():
+                return False  # Suppress this specific error
+        return True
+
+
+# Apply filter to nicegui logger
+nicegui_logger = logging.getLogger("nicegui")
+nicegui_logger.addFilter(NiceGUIErrorFilter())
+
 # Global instances
 http_client: httpx.AsyncClient | None = None
 settings = get_settings()  # Load settings at module level for UI initialization

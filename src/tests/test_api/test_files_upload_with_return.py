@@ -10,7 +10,6 @@ Verifies:
 import io
 import json
 
-import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 

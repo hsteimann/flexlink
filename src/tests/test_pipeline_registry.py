@@ -1,8 +1,8 @@
 """Tests for pipeline registry."""
 
-import pytest
 from pathlib import Path
-from pydantic import ValidationError
+
+import pytest
 
 from flexlink.core.pipeline_registry import PipelineRegistry
 from flexlink.models.pipeline import PipelineConfig

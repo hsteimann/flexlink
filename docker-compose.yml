@@ -15,15 +15,14 @@ services:
       - ./data/uploads:/app/data/uploads
       - ./data/downloads:/app/data/downloads
       - ./data/samples:/app/data/samples:ro
+    env_file:
+      - .env  # Load environment variables from .env file (create from .env.example)
     environment:
-      # Application settings
-      - DEBUG=true
-      - LOG_LEVEL=INFO
-      # File processing settings
-      - MAX_FILE_SIZE_MB=10
+      # Override specific settings for Docker environment
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - UPLOAD_DIR=/app/data/uploads
       - DOWNLOAD_DIR=/app/data/downloads
-      - TEMP_FILE_TTL_SECONDS=3600
     networks:
       - flexlink-network
     restart: unless-stopped

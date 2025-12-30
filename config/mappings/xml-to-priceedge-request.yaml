@@ -1,0 +1,26 @@
+name: xml-to-priceedge-request
+description: Extract item numbers from shop_item XML for PriceEdge batch query
+version: "1.0"
+
+mappings:
+  - source_field: item_no  # From <field name="item_no">VALUE</field>
+    target_field: item_id
+    required: true
+
+  - source_field: description  # From <field name="description">VALUE</field>
+    target_field: product_name
+    required: false
+
+  - source_field: vendor_item_no  # Vendor's item number
+    target_field: vendor_sku
+    required: false
+
+validation:
+  rules:
+    - field: item_id
+      type: string
+      required: true
+      min_length: 1
+
+  on_validation_error: skip_row
+  log_errors: true

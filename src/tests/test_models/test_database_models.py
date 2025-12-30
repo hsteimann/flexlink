@@ -9,7 +9,7 @@ from flexlink.models.database import (
     DatabaseConnectorConfig,
     DatabaseOperation,
     DatabaseType,
-    DatabaseWriteResult
+    DatabaseWriteResult,
 )
 
 

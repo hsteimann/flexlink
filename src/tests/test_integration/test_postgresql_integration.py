@@ -1,15 +1,12 @@
 """Integration tests for PostgreSQL connector (with mocks)."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from flexlink.connectors.postgresql_connector import PostgreSQLConnector
-from flexlink.models.connector import ConnectorConfig, AuthConfig
-from flexlink.models.database import (
-    DatabaseConnectorConfig,
-    DatabaseType,
-    DatabaseOperation
-)
+from flexlink.models.connector import AuthConfig, ConnectorConfig
+from flexlink.models.database import DatabaseConnectorConfig, DatabaseType
 
 
 @pytest.fixture

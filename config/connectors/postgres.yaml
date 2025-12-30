@@ -41,4 +41,4 @@ headers:
 
 timeout: 30
 retry_attempts: 1  # Database writes typically don't retry
-enabled: true
+enabled: false  # Disabled - PostgreSQL container not running

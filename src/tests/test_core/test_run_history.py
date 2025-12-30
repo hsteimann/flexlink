@@ -1,15 +1,14 @@
 """Tests for RunHistoryStorage database operations."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
 
 from flexlink.core.run_history import RunHistoryStorage
 from flexlink.models.pipeline import (
-    PipelineExecutionResult,
     ExecutionMetadata,
+    PipelineExecutionResult,
     StepResult,
-    PipelineRunHistoryRecord
 )
 
 
@@ -25,7 +24,7 @@ async def run_history(tmp_path):
 @pytest.fixture
 def sample_result():
     """Create a sample pipeline execution result."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return PipelineExecutionResult(
         run_id="test-run-123",
         pipeline_name="test-pipeline",
@@ -111,7 +110,7 @@ async def test_save_scheduled_run(run_history, sample_result):
 async def test_list_runs_pagination(run_history):
     """Test listing runs with pagination."""
     # Create multiple runs
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for i in range(10):
         result = PipelineExecutionResult(
@@ -142,7 +141,7 @@ async def test_list_runs_pagination(run_history):
 @pytest.mark.asyncio
 async def test_list_runs_filter_by_pipeline(run_history):
     """Test filtering runs by pipeline name."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create runs for different pipelines
     for pipeline in ["pipeline-a", "pipeline-b"]:
@@ -172,7 +171,7 @@ async def test_list_runs_filter_by_pipeline(run_history):
 @pytest.mark.asyncio
 async def test_list_runs_ordered_by_started_at(run_history):
     """Test that runs are ordered by started_at descending."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create runs with different start times
     for i in range(5):
@@ -199,7 +198,7 @@ async def test_list_runs_ordered_by_started_at(run_history):
 @pytest.mark.asyncio
 async def test_get_statistics(run_history):
     """Test calculating pipeline statistics."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create successful runs
     for i in range(3):
@@ -258,7 +257,7 @@ async def test_get_statistics_no_runs(run_history):
 @pytest.mark.asyncio
 async def test_delete_old_runs(run_history):
     """Test deleting old runs."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Create old runs
     for i in range(3):
@@ -304,7 +303,7 @@ async def test_delete_old_runs(run_history):
 @pytest.mark.asyncio
 async def test_delete_old_runs_no_old_runs(run_history):
     """Test deleting when there are no old runs."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     result = PipelineExecutionResult(
         run_id="recent-1",
@@ -325,7 +324,7 @@ async def test_delete_old_runs_no_old_runs(run_history):
 @pytest.mark.asyncio
 async def test_save_run_with_error_message(run_history):
     """Test saving a failed run with error message."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     result = PipelineExecutionResult(
         run_id="failed-run",
         pipeline_name="test-pipeline",
@@ -351,7 +350,7 @@ async def test_concurrent_writes(run_history):
     """Test concurrent write operations."""
     import asyncio
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     async def save_run(i):
         result = PipelineExecutionResult(

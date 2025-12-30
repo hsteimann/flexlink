@@ -1,14 +1,15 @@
 """Tests for TaskManager background execution."""
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 
-from flexlink.core.task_manager import TaskManager, TaskInfo
+import pytest
+
+from flexlink.core.task_manager import TaskInfo, TaskManager
 from flexlink.models.pipeline import (
-    PipelineExecutionResult,
     ExecutionMetadata,
+    PipelineExecutionResult,
     StepResult,
     TaskStatus,
 )
@@ -23,8 +24,8 @@ def mock_orchestrator():
         run_id="test-run-123",
         pipeline_name="test-pipeline",
         status="success",
-        started_at=datetime.now(timezone.utc),
-        completed_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
         duration_seconds=1.5,
         steps=[
             StepResult(
@@ -193,7 +194,7 @@ def test_cleanup_completed_tasks(task_manager):
         pipeline_name="test-pipeline",
         status=TaskStatus.COMPLETED,
     )
-    task_info.completed_at = datetime.now(timezone.utc).replace(year=2020)
+    task_info.completed_at = datetime.now(UTC).replace(year=2020)
 
     # Add to task manager
     task_manager._tasks["old-task-123"] = task_info

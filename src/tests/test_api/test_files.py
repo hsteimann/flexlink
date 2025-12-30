@@ -8,9 +8,9 @@ import respx
 from fastapi.testclient import TestClient
 
 from flexlink.api.files import router
+from flexlink.connectors.rest_connector import RestConnector
 from flexlink.core.registry import ConnectorRegistry
 from flexlink.core.router import RequestRouter
-from flexlink.connectors.rest_connector import RestConnector
 from flexlink.models.connector import AuthConfig, ConnectorConfig
 from flexlink.models.transformation import RouteConfig
 
@@ -19,6 +19,7 @@ from flexlink.models.transformation import RouteConfig
 def client():
     """Create test client for file routes with file connector registered."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
     from flexlink.connectors.file_connector import FileConnector
 
@@ -447,6 +448,7 @@ def test_cleanup_preserves_recent_files(client):
 async def test_forward_file_individual_mode():
     """Test forwarding file records in individual mode."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
 
     # Setup registry and router
@@ -533,6 +535,7 @@ async def test_forward_file_individual_mode():
 async def test_forward_file_batch_mode():
     """Test forwarding file records in batch mode."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
 
     # Setup registry and router
@@ -617,6 +620,7 @@ async def test_forward_file_batch_mode():
 async def test_forward_file_with_failures():
     """Test forwarding file with some failures."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
 
     # Setup registry and router
@@ -706,6 +710,7 @@ async def test_forward_file_with_failures():
 async def test_forward_empty_file():
     """Test forwarding empty file returns error."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
 
     # Setup minimal dependencies
@@ -754,6 +759,7 @@ async def test_forward_empty_file():
 async def test_forward_file_with_transformations():
     """Test that file forwarding uses route-level transformations."""
     from fastapi import FastAPI
+
     from flexlink.api import dependencies
     from flexlink.models.transformation import TransformationRule
 

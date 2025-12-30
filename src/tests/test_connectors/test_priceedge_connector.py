@@ -1,10 +1,11 @@
 """Integration tests for PriceEdge connector."""
 
+import httpx
 import pytest
 import respx
-import httpx
+
 from flexlink.core.registry import ConnectorRegistry
-from flexlink.models.connector import ConnectorConfig, AuthConfig
+from flexlink.models.connector import AuthConfig, ConnectorConfig
 
 
 @pytest.mark.asyncio

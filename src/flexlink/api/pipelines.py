@@ -192,6 +192,40 @@ async def execute_pipeline(
     Raises:
         HTTPException: 404 if pipeline not found
         HTTPException: 400 if pipeline execution fails
+
+    Examples:
+        Execute XML → PriceEdge → JSON pipeline:
+        ```json
+        POST /api/v1/pipelines/xml-priceedge-json-pipeline/run
+        {
+          "inputs": {
+            "records": [
+              {"item_no": "22050", "description": "Endo N2"},
+              {"item_no": "22051", "description": "Product B"}
+            ]
+          }
+        }
+        ```
+
+        The pipeline will:
+        1. Parse the input records
+        2. Query PriceEdge API for prices (batched)
+        3. Transform the response
+        4. Write results to JSON file in data/downloads/
+
+        Response will include output_file_id in metadata:
+        ```json
+        {
+          "status": "success",
+          "metadata": {
+            "records_loaded": 2,
+            "custom_metadata": {
+              "output_file_id": "uuid-here",
+              "output_filename": "product_prices_20251230_120000.json"
+            }
+          }
+        }
+        ```
     """
     logger.info(
         f"Executing pipeline: {pipeline_name} (background={background})"

@@ -370,6 +370,155 @@ async def test_get_run_status_failed(api_client: FlexLinkAPIClient) -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_get_run_status_from_execution_result(api_client: FlexLinkAPIClient) -> None:
+    """Test handling PipelineExecutionResult response with success status."""
+    # Mock response - this is a PipelineExecutionResult, not PipelineRunStatus
+    started_time = datetime.now(UTC)
+    completed_time = datetime.now(UTC)
+    mock_response = {
+        "run_id": "test-run-123",
+        "pipeline_name": "test-pipeline",
+        "status": "success",  # This is the "success" status that causes validation error
+        "started_at": started_time.isoformat(),
+        "completed_at": completed_time.isoformat(),
+        "duration_seconds": 5.2,
+        "steps": [  # This field indicates it's a PipelineExecutionResult
+            {
+                "step_name": "extract",
+                "status": "success",
+                "duration_seconds": 2.0,
+                "records_processed": 100
+            }
+        ],
+        "metadata": {
+            "records_extracted": 100,
+            "records_transformed": 100,
+            "records_loaded": 100,
+            "validation_errors": 0
+        }
+    }
+
+    # Setup mock
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-123").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    # Execute
+    async with api_client:
+        result = await api_client.get_run_status("test-run-123")
+
+    # Verify - should be converted to PipelineRunStatus with TaskStatus.COMPLETED
+    assert isinstance(result, PipelineRunStatus)
+    assert result.status == TaskStatus.COMPLETED  # "success" mapped to COMPLETED
+    assert result.run_id == "test-run-123"
+    assert result.pipeline_name == "test-pipeline"
+    assert result.started_at is not None
+    assert result.completed_at is not None
+    assert result.duration_seconds == 5.2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_run_status_from_execution_result_partial(api_client: FlexLinkAPIClient) -> None:
+    """Test handling PipelineExecutionResult response with partial status."""
+    # Mock response for partial success
+    started_time = datetime.now(UTC)
+    completed_time = datetime.now(UTC)
+    mock_response = {
+        "run_id": "test-run-456",
+        "pipeline_name": "test-pipeline",
+        "status": "partial",  # Partial success
+        "started_at": started_time.isoformat(),
+        "completed_at": completed_time.isoformat(),
+        "duration_seconds": 3.5,
+        "steps": [
+            {
+                "step_name": "extract",
+                "status": "success",
+                "duration_seconds": 1.0,
+                "records_processed": 50
+            },
+            {
+                "step_name": "transform",
+                "status": "error",
+                "duration_seconds": 2.5,
+                "records_processed": 0,
+                "error_message": "Transform failed"
+            }
+        ],
+        "metadata": {
+            "records_extracted": 50,
+            "records_transformed": 0,
+            "records_loaded": 0,
+            "validation_errors": 1
+        },
+        "error_message": "1 step(s) failed"
+    }
+
+    # Setup mock
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-456").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    # Execute
+    async with api_client:
+        result = await api_client.get_run_status("test-run-456")
+
+    # Verify - partial should also map to COMPLETED
+    assert isinstance(result, PipelineRunStatus)
+    assert result.status == TaskStatus.COMPLETED  # "partial" mapped to COMPLETED
+    assert result.error_message == "1 step(s) failed"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_get_run_status_from_execution_result_failed(api_client: FlexLinkAPIClient) -> None:
+    """Test handling PipelineExecutionResult response with failed status."""
+    # Mock response for failed execution
+    started_time = datetime.now(UTC)
+    completed_time = datetime.now(UTC)
+    mock_response = {
+        "run_id": "test-run-789",
+        "pipeline_name": "test-pipeline",
+        "status": "failed",
+        "started_at": started_time.isoformat(),
+        "completed_at": completed_time.isoformat(),
+        "duration_seconds": 1.0,
+        "steps": [
+            {
+                "step_name": "extract",
+                "status": "error",
+                "duration_seconds": 1.0,
+                "records_processed": 0,
+                "error_message": "Connection failed"
+            }
+        ],
+        "metadata": {
+            "records_extracted": 0,
+            "records_transformed": 0,
+            "records_loaded": 0,
+            "validation_errors": 0
+        },
+        "error_message": "Pipeline failed: 1 error(s)"
+    }
+
+    # Setup mock
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-789").mock(
+        return_value=httpx.Response(200, json=mock_response)
+    )
+
+    # Execute
+    async with api_client:
+        result = await api_client.get_run_status("test-run-789")
+
+    # Verify - failed should map to FAILED
+    assert isinstance(result, PipelineRunStatus)
+    assert result.status == TaskStatus.FAILED
+    assert result.error_message == "Pipeline failed: 1 error(s)"
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_get_pipeline_runs_success(api_client: FlexLinkAPIClient) -> None:
     """Test retrieving pipeline run history."""
     # Mock response
