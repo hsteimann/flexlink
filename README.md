@@ -5,7 +5,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-477%20passing-brightgreen.svg)](./src/tests/)
-[![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen.svg)](./src/tests/)
+[![Coverage](https://img.shields.io/badge/coverage-65%25-yellow.svg)](./htmlcov/index.html)
 
 ## Overview
 
