@@ -9,7 +9,7 @@ from flexlink.core.registry import ConnectorRegistry
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/connectors", tags=["connectors"])
+router = APIRouter(prefix="/v1/connectors", tags=["connectors"])
 
 
 class ConnectorInfo(BaseModel):

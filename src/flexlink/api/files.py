@@ -22,7 +22,7 @@ DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 # TTL for downloaded files (from settings, converted from seconds to hours for readability)
 FILE_TTL_SECONDS = settings.temp_file_ttl_seconds
 
-router = APIRouter(prefix="/api/v1/files", tags=["files"])
+router = APIRouter(prefix="/v1/files", tags=["files"])
 
 
 def get_file_connector() -> FileConnector:

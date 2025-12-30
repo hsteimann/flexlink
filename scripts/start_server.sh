@@ -30,7 +30,10 @@ if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
 fi
 
 # Set PYTHONPATH to include src directory
-export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+# Get the project root (parent directory of scripts)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHONPATH}"
 
 # Start server in background
 echo "🚀 Starting FlexLink server on $HOST:$PORT..."
@@ -51,7 +54,7 @@ echo ""
 echo "⏳ Waiting for server to start..."
 WAITED=0
 while [ $WAITED -lt $MAX_WAIT ]; do
-    if curl -s http://$HOST:$PORT/health > /dev/null 2>&1; then
+    if curl -s http://$HOST:$PORT/api/health > /dev/null 2>&1; then
         break
     fi
     sleep 1
@@ -79,7 +82,7 @@ echo ""
 echo "=========================================="
 echo "Health Check"
 echo "=========================================="
-HEALTH_RESPONSE=$(curl -s http://$HOST:$PORT/health)
+HEALTH_RESPONSE=$(curl -s http://$HOST:$PORT/api/health)
 echo "$HEALTH_RESPONSE" | jq '.'
 echo ""
 
@@ -120,8 +123,8 @@ echo "=========================================="
 echo "Server Information"
 echo "=========================================="
 echo "🌐 Base URL: http://$HOST:$PORT"
-echo "📚 API Docs: http://$HOST:$PORT/docs"
-echo "🏥 Health: http://$HOST:$PORT/health"
+echo "📚 API Docs: http://$HOST:$PORT/api/docs"
+echo "🏥 Health: http://$HOST:$PORT/api/health"
 echo "🔌 Connectors API: http://$HOST:$PORT/api/v1/connectors"
 echo "🛣️  Routes API: http://$HOST:$PORT/api/v1/routes"
 echo ""

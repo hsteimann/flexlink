@@ -9,7 +9,7 @@ from flexlink.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/mappings", tags=["mappings"])
+router = APIRouter(prefix="/v1/mappings", tags=["mappings"])
 
 
 class MappingInfo(BaseModel):

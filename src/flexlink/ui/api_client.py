@@ -157,7 +157,7 @@ class FlexLinkAPIClient:
             APIConnectionError: On connection failures
         """
         try:
-            response = await self.client.get("/api/v1/pipelines")
+            response = await self.client.get("/v1/pipelines")
             response.raise_for_status()
             data: dict[str, Any] = response.json()
             return data
@@ -181,7 +181,7 @@ class FlexLinkAPIClient:
             APIConnectionError: On connection failures
         """
         try:
-            response = await self.client.get(f"/api/v1/pipelines/{name}")
+            response = await self.client.get(f"/v1/pipelines/{name}")
             response.raise_for_status()
             data: dict[str, Any] = response.json()
             return data
@@ -204,7 +204,7 @@ class FlexLinkAPIClient:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
         params = {"background": "true" if background else "false"}
-        response = await self.client.post(f"/api/v1/pipelines/{name}/run", params=params)
+        response = await self.client.post(f"/v1/pipelines/{name}/run", params=params)
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         return data
@@ -222,7 +222,7 @@ class FlexLinkAPIClient:
         Raises:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
-        response = await self.client.get(f"/api/v1/pipelines/runs/{run_id}")
+        response = await self.client.get(f"/v1/pipelines/runs/{run_id}")
         response.raise_for_status()
         data = response.json()
         return PipelineRunStatus(**data)
@@ -248,7 +248,7 @@ class FlexLinkAPIClient:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
         params = {"limit": limit, "offset": offset}
-        response = await self.client.get(f"/api/v1/pipelines/{name}/runs", params=params)
+        response = await self.client.get(f"/v1/pipelines/{name}/runs", params=params)
         response.raise_for_status()
         data = response.json()
         return [PipelineRunHistoryRecord(**record) for record in data.get("runs", [])]
@@ -275,7 +275,7 @@ class FlexLinkAPIClient:
         """
         params = {"limit": limit}
         response = await self.client.get(
-            f"/api/v1/pipelines/{name}/runs/{run_id}/logs",
+            f"/v1/pipelines/{name}/runs/{run_id}/logs",
             params=params,
         )
         response.raise_for_status()
@@ -292,7 +292,7 @@ class FlexLinkAPIClient:
         Raises:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
-        response = await self.client.get("/api/v1/connectors")
+        response = await self.client.get("/v1/connectors")
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         return data
@@ -307,7 +307,7 @@ class FlexLinkAPIClient:
         Raises:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
-        response = await self.client.get("/api/v1/pipelines/schedules")
+        response = await self.client.get("/v1/pipelines/schedules")
         response.raise_for_status()
         data: dict[str, Any] = response.json()
         return data
@@ -325,7 +325,7 @@ class FlexLinkAPIClient:
         Raises:
             httpx.HTTPStatusError: On 4xx/5xx responses
         """
-        response = await self.client.get(f"/api/v1/pipelines/runs/{run_id}")
+        response = await self.client.get(f"/v1/pipelines/runs/{run_id}")
         response.raise_for_status()
         data = response.json()
 

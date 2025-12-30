@@ -26,7 +26,7 @@ from flexlink.models.pipeline import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/pipelines", tags=["pipelines"])
+router = APIRouter(prefix="/v1/pipelines", tags=["pipelines"])
 
 
 # Response models

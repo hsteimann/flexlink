@@ -6,7 +6,7 @@ from flexlink.api.dependencies import get_router
 from flexlink.core.router import RequestRouter
 from flexlink.models.request import IntegrationRequest, IntegrationResponse
 
-router = APIRouter(prefix="/api/v1", tags=["integration"])
+router = APIRouter(prefix="/v1", tags=["integration"])
 
 
 @router.post("/route", response_model=IntegrationResponse)
