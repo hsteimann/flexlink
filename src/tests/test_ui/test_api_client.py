@@ -82,7 +82,7 @@ async def test_list_pipelines_success(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines").mock(
+    respx.get("http://localhost:8000/v1/pipelines").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -125,7 +125,7 @@ async def test_get_pipeline_success(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/test-pipeline").mock(
+    respx.get("http://localhost:8000/v1/pipelines/test-pipeline").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -145,7 +145,7 @@ async def test_get_pipeline_success(api_client: FlexLinkAPIClient) -> None:
 async def test_get_pipeline_not_found(api_client: FlexLinkAPIClient) -> None:
     """Test 404 handling when pipeline doesn't exist."""
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/nonexistent").mock(
+    respx.get("http://localhost:8000/v1/pipelines/nonexistent").mock(
         return_value=httpx.Response(
             404, json={"detail": "Pipeline 'nonexistent' not found"}
         )
@@ -195,7 +195,7 @@ async def test_execute_pipeline_foreground(api_client: FlexLinkAPIClient) -> Non
 
     # Setup mock
     respx.post(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/run",
+        "http://localhost:8000/v1/pipelines/test-pipeline/run",
         params={"background": "false"},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -225,7 +225,7 @@ async def test_execute_pipeline_background(api_client: FlexLinkAPIClient) -> Non
 
     # Setup mock
     respx.post(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/run",
+        "http://localhost:8000/v1/pipelines/test-pipeline/run",
         params={"background": "true"},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -255,7 +255,7 @@ async def test_get_run_status_queued(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/runs/test-run-123").mock(
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-123").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -287,7 +287,7 @@ async def test_get_run_status_running(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/runs/test-run-123").mock(
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-123").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -320,7 +320,7 @@ async def test_get_run_status_completed(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/runs/test-run-123").mock(
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-123").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -354,7 +354,7 @@ async def test_get_run_status_failed(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/runs/test-run-123").mock(
+    respx.get("http://localhost:8000/v1/pipelines/runs/test-run-123").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -407,7 +407,7 @@ async def test_get_pipeline_runs_success(api_client: FlexLinkAPIClient) -> None:
 
     # Setup mock
     respx.get(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/runs",
+        "http://localhost:8000/v1/pipelines/test-pipeline/runs",
         params={"limit": 50, "offset": 0},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -451,7 +451,7 @@ async def test_get_pipeline_runs_pagination(api_client: FlexLinkAPIClient) -> No
 
     # Setup mock
     respx.get(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/runs",
+        "http://localhost:8000/v1/pipelines/test-pipeline/runs",
         params={"limit": 10, "offset": 10},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -493,7 +493,7 @@ async def test_get_run_logs_success(api_client: FlexLinkAPIClient) -> None:
 
     # Setup mock
     respx.get(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/runs/test-run-123/logs",
+        "http://localhost:8000/v1/pipelines/test-pipeline/runs/test-run-123/logs",
         params={"limit": 1000},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -532,7 +532,7 @@ async def test_get_run_logs_with_limit(api_client: FlexLinkAPIClient) -> None:
 
     # Setup mock
     respx.get(
-        "http://localhost:8000/api/v1/pipelines/test-pipeline/runs/test-run-123/logs",
+        "http://localhost:8000/v1/pipelines/test-pipeline/runs/test-run-123/logs",
         params={"limit": 100},
     ).mock(return_value=httpx.Response(200, json=mock_response))
 
@@ -569,7 +569,7 @@ async def test_list_connectors_success(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/connectors").mock(
+    respx.get("http://localhost:8000/v1/connectors").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -604,7 +604,7 @@ async def test_list_schedules_success(api_client: FlexLinkAPIClient) -> None:
     }
 
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines/schedules").mock(
+    respx.get("http://localhost:8000/v1/pipelines/schedules").mock(
         return_value=httpx.Response(200, json=mock_response)
     )
 
@@ -622,7 +622,7 @@ async def test_list_schedules_success(api_client: FlexLinkAPIClient) -> None:
 async def test_error_handling_500(api_client: FlexLinkAPIClient) -> None:
     """Test handling of 500 server errors."""
     # Setup mock
-    respx.get("http://localhost:8000/api/v1/pipelines").mock(
+    respx.get("http://localhost:8000/v1/pipelines").mock(
         return_value=httpx.Response(500, json={"detail": "Internal server error"})
     )
 
@@ -639,7 +639,7 @@ async def test_error_handling_500(api_client: FlexLinkAPIClient) -> None:
 async def test_error_handling_network_error(api_client: FlexLinkAPIClient) -> None:
     """Test handling of network errors."""
     # Setup mock to raise connection error
-    respx.get("http://localhost:8000/api/v1/pipelines").mock(
+    respx.get("http://localhost:8000/v1/pipelines").mock(
         side_effect=httpx.ConnectError("Connection refused")
     )
 
@@ -654,7 +654,7 @@ async def test_error_handling_network_error(api_client: FlexLinkAPIClient) -> No
 async def test_error_handling_timeout(api_client: FlexLinkAPIClient) -> None:
     """Test handling of request timeouts."""
     # Setup mock to raise timeout
-    respx.get("http://localhost:8000/api/v1/pipelines").mock(
+    respx.get("http://localhost:8000/v1/pipelines").mock(
         side_effect=httpx.TimeoutException("Request timeout")
     )
 

@@ -128,7 +128,7 @@ async def upload_file(
             file_path.write_bytes(output_content)
 
             # Set download URL
-            result.download_url = f"/api/v1/files/download/{file_id}"
+            result.download_url = f"/v1/files/download/{file_id}"
 
         # Return file content immediately if requested
         if return_file and output_content:

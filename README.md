@@ -4,8 +4,8 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-328%20passing-brightgreen.svg)](./src/tests/)
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](./src/tests/)
+[![Tests](https://img.shields.io/badge/tests-477%20passing-brightgreen.svg)](./src/tests/)
+[![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen.svg)](./src/tests/)
 
 ## Overview
 
@@ -24,7 +24,7 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - **Request Routing**: Pattern-based routing with path parameters and wildcard support
 - **Batch Ingestion**: Upload files → Transform records → Forward to REST connectors or databases
 - **Extensible Architecture**: Plugin-based connector system for easy integration additions
-- **Production Ready**: 328 tests (100% pass rate), comprehensive error handling, async-first design
+- **Production Ready**: 477 tests (100% pass rate), comprehensive error handling, async-first design
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 

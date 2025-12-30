@@ -43,7 +43,7 @@ def client():
 
 def test_list_formats(client):
     """Test listing supported file formats."""
-    response = client.get("/api/v1/files/formats")
+    response = client.get("/v1/files/formats")
 
     assert response.status_code == 200
     data = response.json()
@@ -55,7 +55,7 @@ def test_list_formats(client):
 
 def test_file_service_health(client):
     """Test file service health check."""
-    response = client.get("/api/v1/files/health")
+    response = client.get("/v1/files/health")
 
     assert response.status_code == 200
     data = response.json()
@@ -68,7 +68,7 @@ def test_upload_csv_file(client):
     csv_content = b"id,name,email\n1,John,john@test.com\n2,Jane,jane@test.com"
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv"},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -85,7 +85,7 @@ def test_upload_json_file(client):
     json_content = b'[{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]'
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "json"},
         files={"file": ("test.json", io.BytesIO(json_content), "application/json")},
     )
@@ -106,7 +106,7 @@ def test_upload_xml_file(client):
     </data>"""
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "xml"},
         files={"file": ("test.xml", io.BytesIO(xml_content), "application/xml")},
     )
@@ -123,7 +123,7 @@ def test_upload_and_convert_csv_to_json(client):
     csv_content = b"id,name\n1,John\n2,Jane"
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "target_format": "json"},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -141,7 +141,7 @@ def test_upload_file_too_large(client):
     large_content = b"x" * (11 * 1024 * 1024)  # 11MB
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv"},
         files={"file": ("large.csv", io.BytesIO(large_content), "text/csv")},
     )
@@ -155,7 +155,7 @@ def test_upload_invalid_csv(client):
     invalid_content = b""  # Empty file
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv"},
         files={"file": ("test.csv", io.BytesIO(invalid_content), "text/csv")},
     )
@@ -172,7 +172,7 @@ def test_convert_csv_to_json(client):
     csv_content = b"id,name,email\n1,John,john@test.com\n2,Jane,jane@test.com"
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "csv", "target_format": "json"},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -192,7 +192,7 @@ def test_convert_json_to_xml(client):
     json_content = b'[{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]'
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "json", "target_format": "xml"},
         files={"file": ("test.json", io.BytesIO(json_content), "application/json")},
     )
@@ -215,7 +215,7 @@ def test_convert_xml_to_csv(client):
     </data>"""
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "xml", "target_format": "csv"},
         files={"file": ("test.xml", io.BytesIO(xml_content), "application/xml")},
     )
@@ -234,7 +234,7 @@ def test_convert_same_format_no_conversion(client):
     csv_content = b"id,name\n1,John"
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "csv", "target_format": "csv"},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -249,7 +249,7 @@ def test_convert_invalid_file(client):
     invalid_content = b"not valid json"
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "json", "target_format": "csv"},
         files={"file": ("test.json", io.BytesIO(invalid_content), "application/json")},
     )
@@ -262,7 +262,7 @@ def test_convert_file_too_large(client):
     large_content = b"x" * (11 * 1024 * 1024)  # 11MB
 
     response = client.post(
-        "/api/v1/files/convert",
+        "/v1/files/convert",
         params={"source_format": "csv", "target_format": "json"},
         files={"file": ("large.csv", io.BytesIO(large_content), "text/csv")},
     )
@@ -275,7 +275,7 @@ def test_upload_with_save_creates_download_url(client):
     csv_content = b"id,name\n1,John\n2,Jane"
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "save_file": True},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -284,7 +284,7 @@ def test_upload_with_save_creates_download_url(client):
     data = response.json()
     assert data["success"] is True
     assert data["download_url"] is not None
-    assert "/api/v1/files/download/" in data["download_url"]
+    assert "/v1/files/download/" in data["download_url"]
 
 
 def test_upload_without_save_no_download_url(client):
@@ -292,7 +292,7 @@ def test_upload_without_save_no_download_url(client):
     csv_content = b"id,name\n1,John\n2,Jane"
 
     response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "save_file": False},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -309,7 +309,7 @@ def test_download_saved_file(client):
     csv_content = b"id,name,email\n1,John,john@test.com\n2,Jane,jane@test.com"
 
     upload_response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "save_file": True},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -334,7 +334,7 @@ def test_download_with_format_conversion(client):
     csv_content = b"id,name\n1,John\n2,Jane"
 
     upload_response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "target_format": "json", "save_file": True},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -366,7 +366,7 @@ def test_download_nonexistent_file(client):
 
 def test_download_invalid_file_id(client):
     """Test downloading with invalid file ID format."""
-    response = client.get("/api/v1/files/download/invalid-not-a-uuid")
+    response = client.get("/v1/files/download/invalid-not-a-uuid")
 
     assert response.status_code == 400
     assert "Invalid file ID format" in response.json()["detail"]
@@ -381,7 +381,7 @@ def test_cleanup_expired_files(client):
     csv_content = b"id,name\n1,Test"
 
     upload_response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "save_file": True},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -401,7 +401,7 @@ def test_cleanup_expired_files(client):
     os.utime(saved_file, (old_time, old_time))
 
     # Run cleanup
-    cleanup_response = client.delete("/api/v1/files/cleanup")
+    cleanup_response = client.delete("/v1/files/cleanup")
 
     assert cleanup_response.status_code == 200
     data = cleanup_response.json()
@@ -419,7 +419,7 @@ def test_cleanup_preserves_recent_files(client):
     csv_content = b"id,name\n1,Test"
 
     upload_response = client.post(
-        "/api/v1/files/upload",
+        "/v1/files/upload",
         params={"source_format": "csv", "save_file": True},
         files={"file": ("test.csv", io.BytesIO(csv_content), "text/csv")},
     )
@@ -429,7 +429,7 @@ def test_cleanup_preserves_recent_files(client):
     file_id = download_url.split("/")[-1]
 
     # Run cleanup immediately (file is fresh)
-    cleanup_response = client.delete("/api/v1/files/cleanup")
+    cleanup_response = client.delete("/v1/files/cleanup")
 
     assert cleanup_response.status_code == 200
 
@@ -505,7 +505,7 @@ async def test_forward_file_individual_mode():
 
     # Forward file
     response = client.post(
-        "/api/v1/files/forward",
+        "/v1/files/forward",
         params={
             "source_format": "csv",
             "target_route": "/users",
@@ -591,7 +591,7 @@ async def test_forward_file_batch_mode():
 
     # Forward file in batch mode
     response = client.post(
-        "/api/v1/files/forward",
+        "/v1/files/forward",
         params={
             "source_format": "json",
             "target_route": "/batch",
@@ -682,7 +682,7 @@ async def test_forward_file_with_failures():
 
     # Forward file
     response = client.post(
-        "/api/v1/files/forward",
+        "/v1/files/forward",
         params={
             "source_format": "csv",
             "target_route": "/users",
@@ -736,7 +736,7 @@ async def test_forward_empty_file():
 
     # Forward file
     response = client.post(
-        "/api/v1/files/forward",
+        "/v1/files/forward",
         params={
             "source_format": "csv",
             "target_route": "/users",
@@ -822,7 +822,7 @@ async def test_forward_file_with_transformations():
 
     # Forward file
     response = client.post(
-        "/api/v1/files/forward",
+        "/v1/files/forward",
         params={
             "source_format": "csv",
             "target_route": "/users",

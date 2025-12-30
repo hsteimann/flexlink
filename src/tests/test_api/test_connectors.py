@@ -48,7 +48,7 @@ def test_list_connectors_success(test_app):
     test_app.dependency_overrides[get_connector_registry] = lambda: mock_registry
 
     client = TestClient(test_app)
-    response = client.get("/api/v1/connectors")
+    response = client.get("/v1/connectors")
 
     assert response.status_code == 200
     data = response.json()
@@ -76,7 +76,7 @@ def test_list_connectors_empty(test_app):
     test_app.dependency_overrides[get_connector_registry] = lambda: mock_registry
 
     client = TestClient(test_app)
-    response = client.get("/api/v1/connectors")
+    response = client.get("/v1/connectors")
 
     assert response.status_code == 200
     data = response.json()
@@ -98,7 +98,7 @@ def test_connectors_response_format(test_app):
     test_app.dependency_overrides[get_connector_registry] = lambda: mock_registry
 
     client = TestClient(test_app)
-    response = client.get("/api/v1/connectors")
+    response = client.get("/v1/connectors")
 
     assert response.status_code == 200
     data = response.json()
