@@ -221,6 +221,132 @@ async def test_extract_with_page_pagination(rest_connector, pipeline_context):
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_extract_with_body_pagination(rest_connector, pipeline_context):
+    """Test page pagination with parameters in request body."""
+    import json
+
+    # Mock page 1 response
+    def check_page_1(request):
+        body = json.loads(request.content)
+        assert body["page"] == 1
+        assert body["nrOfRecords"] == 2
+        assert body["filters"] == [{"column": "status", "value": "active"}]
+        return httpx.Response(200, json={
+            "Data": {
+                "data": [{"id": 1}, {"id": 2}]
+            }
+        })
+
+    # Mock page 2 response
+    def check_page_2(request):
+        body = json.loads(request.content)
+        assert body["page"] == 2
+        assert body["nrOfRecords"] == 2
+        return httpx.Response(200, json={
+            "Data": {
+                "data": [{"id": 3}]
+            }
+        })
+
+    # Setup mocks with body inspection
+    respx.post("https://api.example.com/query").mock(side_effect=[
+        check_page_1,
+        check_page_2
+    ])
+
+    # Create step with body-based pagination
+    step = ExtractStep(
+        connector=rest_connector,
+        method="POST",
+        path="/query",
+        params={
+            "body": {
+                "filters": [{"column": "status", "value": "active"}]
+            }
+        },
+        pagination={
+            "enabled": True,
+            "strategy": "page",
+            "pagination_in_body": True,  # NEW FLAG
+            "page_param": "page",
+            "size_param": "nrOfRecords",
+            "page_size": 2,
+            "max_pages": 10,
+            "start_page": 1,
+            "data_path": "Data.data"
+        }
+    )
+
+    await step.execute(pipeline_context)
+
+    # Verify all records fetched
+    assert len(pipeline_context.data) == 3
+    assert pipeline_context.data[0]["id"] == 1
+    assert pipeline_context.data[1]["id"] == 2
+    assert pipeline_context.data[2]["id"] == 3
+    assert pipeline_context.metadata.records_extracted == 3
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_extract_body_pagination_with_templates(rest_connector, pipeline_context):
+    """Test that template variables work with body pagination."""
+    import json
+
+    # Setup context with item IDs
+    pipeline_context.data = [
+        {"cd_ItemNumber": "ITEM001"},
+        {"cd_ItemNumber": "ITEM002"}
+    ]
+
+    # Mock response inspector
+    def check_request(request):
+        body = json.loads(request.content)
+        # Verify template was substituted
+        assert "ITEM001,ITEM002" in body["filters"][0]["value"]
+        # Verify pagination params present
+        assert body["page"] in [1, 2]
+        assert body["nrOfRecords"] == 10
+
+        if body["page"] == 1:
+            return httpx.Response(200, json={"data": [{"price": 99.99}] * 10})
+        else:
+            return httpx.Response(200, json={"data": []})
+
+    respx.post("https://api.example.com/prices").mock(side_effect=check_request)
+
+    step = ExtractStep(
+        connector=rest_connector,
+        method="POST",
+        path="/prices",
+        params={
+            "body": {
+                "page": 1,  # Will be overridden
+                "nrOfRecords": 100,  # Will be overridden
+                "filters": [{
+                    "columnName": "cd_ItemNumber",
+                    "op": "containsAny",
+                    "value": "{{item_ids}}"  # Template variable
+                }]
+            }
+        },
+        pagination={
+            "enabled": True,
+            "strategy": "page",
+            "pagination_in_body": True,
+            "page_param": "page",
+            "size_param": "nrOfRecords",
+            "page_size": 10,
+            "max_pages": 5
+        }
+    )
+
+    await step.execute(pipeline_context)
+    assert len(pipeline_context.data) == 10
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_extract_error_handling(rest_connector, pipeline_context):
     """Test extract step error handling."""
     # Mock failed response

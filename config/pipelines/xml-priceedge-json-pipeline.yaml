@@ -37,6 +37,7 @@ steps:
     params:
       method: POST
       body:
+        # These will be overridden by pagination
         page: 1
         nrOfRecords: 100
         filters:
@@ -46,6 +47,13 @@ steps:
         # Note: fields parameter removed - let API return all fields
         # Filtering happens in the transformation step instead
     pagination:
+      enabled: true                    # Enable body-based pagination
+      strategy: page
+      pagination_in_body: true         # Use body-based pagination
+      page_param: page
+      size_param: nrOfRecords
+      page_size: 100
+      max_pages: 100                   # Safety limit (10,000 records max)
       data_path: Data.data  # Extract price records from PriceEdge response
     retry_policy:
       max_attempts: 3

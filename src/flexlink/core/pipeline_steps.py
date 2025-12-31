@@ -1,5 +1,6 @@
 """Pipeline step implementations."""
 
+import copy
 import logging
 import uuid
 from abc import ABC, abstractmethod
@@ -245,21 +246,38 @@ class ExtractStep(PipelineStep):
         max_pages: int,
         context: PipelineRunContext
     ) -> list[dict[str, Any]]:
-        """Paginate using page number strategy."""
+        """Paginate using page number strategy (query params OR body)."""
         all_records = []
         page_param = self.pagination_config.get("page_param", "page")
         size_param = self.pagination_config.get("size_param", "page_size")
         start_page = self.pagination_config.get("start_page", 1)
 
+        # Check if pagination should be in request body
+        pagination_in_body = self.pagination_config.get("pagination_in_body", False)
+
+        # Substitute template variables once before pagination loop
+        base_body = self.params.get("body")
+        if base_body and pagination_in_body:
+            base_body = self._substitute_context_variables(base_body, context)
+
         for page_num in range(start_page, start_page + max_pages):
-            query_params = self.params.get("query_params", {}).copy()
-            query_params[page_param] = page_num
-            query_params[size_param] = page_size
+            if pagination_in_body:
+                # Body-based pagination: Update page fields in body
+                body = copy.deepcopy(base_body) if base_body else {}
+                body[page_param] = page_num
+                body[size_param] = page_size
+                query_params = self.params.get("query_params", {})
+            else:
+                # Query param pagination (existing behavior)
+                query_params = self.params.get("query_params", {}).copy()
+                query_params[page_param] = page_num
+                query_params[size_param] = page_size
+                body = self.params.get("body")
 
             response = await self.connector.send_request(
                 method=self.method,
                 path=self.path,
-                data=self.params.get("body"),
+                data=body,
                 params=query_params
             )
 
@@ -271,7 +289,10 @@ class ExtractStep(PipelineStep):
             records = self._extract_records(response.body)
             all_records.extend(records)
 
-            logger.debug(f"Fetched page {page_num}: {len(records)} records")
+            logger.debug(
+                f"Fetched page {page_num}: {len(records)} records "
+                f"(pagination_in_body={pagination_in_body})"
+            )
 
             if len(records) < page_size:
                 break
