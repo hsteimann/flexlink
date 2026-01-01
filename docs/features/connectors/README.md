@@ -12,14 +12,17 @@ A connector is a component that:
 
 ## Connector Types
 
-FlexLink provides four built-in connector types:
+FlexLink provides four built-in connector types plus specialized connectors:
 
 | Connector | Direction | Protocol | Use Case |
 |-----------|-----------|----------|----------|
-| [REST](rest-connector.md) | Bidirectional | HTTP/HTTPS | Third-party APIs (PriceEdge, Salesforce) |
+| [REST](rest-connector.md) | Bidirectional | HTTP/HTTPS | Generic third-party APIs |
 | [File](file-connector.md) | Bidirectional | Filesystem | CSV imports, JSON exports, log files |
 | [Webhook](webhook-connector.md) | Output | HTTP POST | Real-time event notifications |
 | [Database](database-connector.md) | Output | SQL | PostgreSQL data persistence |
+| **Specialized** | Bidirectional | Various | API-specific behavior (PriceEdge, Shopware, etc.) |
+
+**Note**: Specialized connectors extend base connectors (like REST) to handle API-specific quirks. See [Specialized Connectors](#specialized-connectors) below.
 
 ## Connector Interface
 
@@ -409,6 +412,362 @@ token: "sk-1234567890abcdef"
 **Example** (Database writes):
 - **Single Inserts**: 1,000 records × 10ms = 10,000ms (10 seconds)
 - **Batch Insert**: 1 batch × 500ms = 500ms (20x faster)
+
+## Specialized Connectors
+
+### What are Specialized Connectors?
+
+**Specialized connectors** are custom connector classes that extend base connectors (like `RestConnector`) to handle API-specific quirks and behaviors. Instead of using generic configuration, they encapsulate API-specific logic in Python code.
+
+**Example**: `PriceEdgeConnector` handles PriceEdge's unique characteristics:
+- Response unwrapping (`Data.data` structure)
+- Body-based pagination (POST with params in body)
+- Custom API key format
+- Specialized methods like `query_suggested_prices()`
+
+### When to Use Specialized Connectors
+
+Use specialized connectors when an API has:
+
+✅ **Non-standard response wrapping**
+```python
+# API returns: {"Data": {"data": [...], "totalRecords": 500}}
+# Specialized connector unwraps to: [...]
+```
+
+✅ **Unusual pagination**
+```python
+# POST requests with pagination in body (not query params)
+# Specialized connector handles automatically
+```
+
+✅ **Complex authentication**
+```python
+# Custom header format: "ApiKey key_name:token"
+# Specialized connector formats correctly
+```
+
+✅ **Common operations worth simplifying**
+```python
+# Instead of: complex pipeline configuration
+# Use: await connector.query_suggested_prices(item_ids)
+```
+
+### Registry Name-First Lookup
+
+The registry uses a **name-first lookup** pattern to load specialized connectors:
+
+```yaml
+# config/connectors/priceedge.yaml
+name: priceedge  # Registry checks this name first
+type: rest       # Falls back to this if name not found
+```
+
+**Lookup Process:**
+1. Check if `name` matches a specialized connector ("priceedge" → `PriceEdgeConnector`)
+2. Fall back to `type` for generic connectors ("rest" → `RestConnector`)
+3. This maintains backwards compatibility while enabling specialization
+
+**Registry Configuration:**
+```python
+# src/flexlink/core/registry.py
+type_mapping = {
+    "rest": "flexlink.connectors.rest_connector.RestConnector",
+    "priceedge": "flexlink.connectors.priceedge_connector.PriceEdgeConnector",  # Specialized
+    "file": "flexlink.connectors.file_connector.FileConnector",
+    # ...
+}
+
+# Name-first lookup
+connector_key = config.name if config.name in type_mapping else config.type.lower()
+```
+
+### Example: PriceEdgeConnector
+
+**Implementation:**
+```python
+# src/flexlink/connectors/priceedge_connector.py
+class PriceEdgeConnector(RestConnector):
+    """Specialized connector for PriceEdge pricing platform."""
+
+    async def send_request(self, method, path, data=None, **kwargs):
+        """Override to apply response transformation."""
+        response = await super().send_request(method, path, data, **kwargs)
+
+        # Automatically unwrap Data.data
+        if response.body and "Data" in response.body:
+            response.body = response.body["Data"]["data"]
+
+        return response
+
+    async def query_suggested_prices(self, item_ids, page_size=100, max_pages=100):
+        """Simplified method for common operation."""
+        all_records = []
+        page = 1
+
+        while page <= max_pages:
+            response = await self._fetch_page(
+                table="Item_PriceList_SuggestedPrices_Suggested_Price",
+                page=page,
+                page_size=page_size,
+                filters=[{
+                    "columnName": "cd_ItemNumber",
+                    "op": "containsAny",
+                    "value": ",".join(item_ids)
+                }]
+            )
+
+            if not response.body:
+                break
+
+            all_records.extend(response.body)
+
+            if len(response.body) < page_size:
+                break  # Last page
+
+            page += 1
+
+        return all_records
+```
+
+**Usage in Pipelines:**
+```yaml
+# Simplified pipeline configuration
+steps:
+  - name: query_prices
+    type: extract
+    connector: priceedge  # Loads PriceEdgeConnector automatically
+    method: POST
+    path: api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+    params:
+      body:
+        filters:
+          - columnName: cd_ItemNumber
+            op: containsAny
+            value: "{{item_ids}}"
+    pagination:
+      enabled: true
+      pagination_in_body: true  # Handled by specialized connector
+      data_path: Data.data      # Automatically unwrapped
+```
+
+**Benefits:**
+- ✅ Cleaner pipeline configurations
+- ✅ Automatic API quirk handling
+- ✅ Type-safe specialized methods
+- ✅ Easier testing and maintenance
+- ✅ Backwards compatible
+
+### Creating a Specialized Connector
+
+**Step 1: Create Connector Class**
+
+```python
+# src/flexlink/connectors/myapi_connector.py
+from flexlink.connectors.rest_connector import RestConnector
+from flexlink.models.request import IntegrationResponse
+
+class MyAPIConnector(RestConnector):
+    """Specialized connector for MyAPI platform."""
+
+    async def send_request(self, method, path, data=None, **kwargs):
+        """Override to handle MyAPI-specific behavior."""
+        # Call parent method
+        response = await super().send_request(method, path, data, **kwargs)
+
+        # Apply API-specific transformations
+        if response.body:
+            response.body = self._unwrap_myapi_response(response.body)
+
+        return response
+
+    def _unwrap_myapi_response(self, data):
+        """Unwrap MyAPI's response structure."""
+        if isinstance(data, dict) and "result" in data:
+            return data["result"]["items"]
+        return data
+
+    async def get_items(self, filters):
+        """Simplified method for common operation."""
+        # Encapsulate complex logic here
+        pass
+```
+
+**Step 2: Register in Type Mapping**
+
+```python
+# src/flexlink/core/registry.py
+type_mapping = {
+    # ...
+    "myapi": "flexlink.connectors.myapi_connector.MyAPIConnector",
+}
+```
+
+**Step 3: Export from Package**
+
+```python
+# src/flexlink/connectors/__init__.py
+from flexlink.connectors.myapi_connector import MyAPIConnector
+
+__all__ = [
+    # ...
+    "MyAPIConnector",
+]
+```
+
+**Step 4: Create Configuration**
+
+```yaml
+# config/connectors/myapi.yaml
+name: myapi  # Triggers specialized connector
+type: rest   # Fallback type
+base_url: ${MYAPI_BASE_URL}
+# ... other config ...
+```
+
+**Step 5: Write Tests**
+
+```python
+# src/tests/test_connectors/test_myapi_connector.py
+@pytest.mark.asyncio
+@respx.mock
+async def test_myapi_response_unwrapping(http_client):
+    connector = MyAPIConnector(config, http_client)
+
+    respx.get("https://api.example.com/items").mock(
+        return_value=httpx.Response(200, json={
+            "result": {
+                "items": [{"id": 1}, {"id": 2}]
+            }
+        })
+    )
+
+    response = await connector.send_request("GET", "/items")
+
+    # Should be unwrapped
+    assert response.body == [{"id": 1}, {"id": 2}]
+```
+
+### Examples of Specialized Connectors
+
+**SaaS Platforms:**
+- `ShopwareConnector` - Shopware e-commerce platform
+  - Handle Shopware's pagination
+  - Unwrap `data` structure
+  - Entity-specific methods (products, orders, customers)
+
+- `SalesforceConnector` - Salesforce CRM
+  - SOQL query builder
+  - Bulk API handling
+  - Automatic auth token refresh
+
+**Analytics Platforms:**
+- `GoogleAnalyticsConnector`
+  - Report query builder
+  - Date range handling
+  - Metric aggregation
+
+**Payment Gateways:**
+- `StripeConnector`
+  - Idempotency key handling
+  - Webhook signature verification
+  - Cursor-based pagination
+
+### Best Practices
+
+**1. Inherit from Appropriate Base**
+```python
+# Extend RestConnector for HTTP APIs
+class MyAPIConnector(RestConnector):
+    pass
+
+# Extend DatabaseConnector for databases
+class MongoDBConnector(DatabaseConnector):
+    pass
+```
+
+**2. Override Only What's Needed**
+```python
+# Don't reimplement everything
+class MyConnector(RestConnector):
+    # Only override send_request if you need transformation
+    async def send_request(self, ...):
+        response = await super().send_request(...)  # Reuse parent
+        return self._transform(response)  # Add your logic
+```
+
+**3. Keep Configuration Declarative**
+```python
+# Good: Behavior in code, config for values
+class MyConnector(RestConnector):
+    async def send_request(self, ...):
+        # Hardcoded API behavior
+        pass
+
+# config.yaml
+base_url: ${MY_API_URL}  # Value from config
+```
+
+**4. Write Comprehensive Tests**
+```python
+# Test response unwrapping
+# Test pagination
+# Test error handling
+# Test specialized methods
+```
+
+**5. Document API Quirks**
+```python
+class PriceEdgeConnector(RestConnector):
+    """
+    Specialized connector for PriceEdge pricing platform.
+
+    PriceEdge API Characteristics:
+    - Pagination: POST requests with page/nrOfRecords in body
+    - Auth: Custom "ApiKey {key_name}:{token}" header format
+    - Responses: Wrapped in Data.data structure
+    - Endpoints: Table-based API structure
+
+    Documentation: https://priceedge.mintlify.app/
+    """
+```
+
+### Migration Guide
+
+**Converting Generic Connector to Specialized:**
+
+**Before (Generic):**
+```yaml
+# Complex pipeline with manual unwrapping
+steps:
+  - name: query_api
+    type: extract
+    connector: generic_rest
+    params:
+      # Complex configuration
+  - name: unwrap
+    type: transform
+    mapping_ref: unwrap-response  # Manual unwrapping
+```
+
+**After (Specialized):**
+```yaml
+# Simplified pipeline
+steps:
+  - name: query_api
+    type: extract
+    connector: myapi  # Automatic unwrapping
+    params:
+      # Simple configuration
+```
+
+**Migration Steps:**
+1. Create specialized connector class
+2. Move unwrapping logic from transformations to connector
+3. Add specialized methods for common operations
+4. Update pipeline configurations to use new connector
+5. Remove manual unwrapping transformations
+6. Test thoroughly
 
 ## Extending Connectors
 

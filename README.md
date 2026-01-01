@@ -30,6 +30,15 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 
 ### Recent Improvements
 
+**v0.5.0 - Specialized Connector Architecture** (December 2025)
+- ✅ **Specialized Connectors**: New inheritance-based pattern for API-specific behavior encapsulation
+- ✅ **PriceEdgeConnector**: First specialized connector with automatic response unwrapping and body-based pagination
+- ✅ **Name-First Registry Lookup**: Registry intelligently loads specialized vs. generic connectors based on configuration name
+- ✅ **Simplified Pipelines**: Specialized connectors reduce pipeline complexity by handling API quirks automatically
+- ✅ **Type-Safe Methods**: Custom methods like `query_suggested_prices()` provide cleaner programmatic access
+- ✅ **Backwards Compatible**: Existing connectors unaffected, name fallback to type ensures compatibility
+- ✅ **65 Tests**: All connector tests passing, including 6 new PriceEdge specialized connector tests (100% coverage)
+
 **v0.4.1 - Web UI Monitoring Dashboard** (December 2024)
 - ✅ **Material Design 3 UI**: Modern web dashboard built with NiceGUI and Material You design system
 - ✅ **Pipeline Monitoring**: View, execute, and monitor pipelines through an intuitive web interface

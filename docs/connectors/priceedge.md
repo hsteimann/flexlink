@@ -2,7 +2,45 @@
 
 ## Overview
 
-The PriceEdge connector enables FlexLink to integrate with PriceEdge's pricing platform for retrieving item metadata, suggested prices, competitor prices, and recommended pricing based on margin and competitor data.
+The PriceEdge connector is a **specialized connector** that integrates FlexLink with PriceEdge's pricing platform. It provides simplified access to suggested prices, item metadata, and competitor pricing data with automatic response unwrapping and built-in pagination.
+
+**Key Features:**
+- ✅ **Specialized Connector Class**: Custom `PriceEdgeConnector` extends `RestConnector`
+- ✅ **Automatic Response Unwrapping**: Handles PriceEdge's `Data.data` wrapper structure
+- ✅ **Built-in Pagination**: Transparent multi-page result handling
+- ✅ **Type-Safe Methods**: Dedicated methods like `query_suggested_prices()`
+- ✅ **Body-Based Pagination**: POST requests with pagination in request body
+- ✅ **Safety Limits**: Configurable max pages to prevent runaway queries
+
+## Architecture
+
+### Specialized Connector Pattern
+
+Unlike generic REST connectors, PriceEdgeConnector is a **specialized connector** that inherits from `RestConnector` but adds PriceEdge-specific behavior:
+
+```python
+from flexlink.connectors.priceedge_connector import PriceEdgeConnector
+
+# Specialized methods
+prices = await connector.query_suggested_prices(
+    item_ids=["12345", "12346"],
+    page_size=100,
+    max_pages=10
+)
+# Returns unwrapped list directly: [{"cd_ItemNumber": "12345", "Value": 99.99}, ...]
+```
+
+**How It Works:**
+1. Registry sees `name: priceedge` in configuration
+2. Loads `PriceEdgeConnector` class (not generic `RestConnector`)
+3. Connector automatically unwraps `Data.data` structure
+4. Built-in methods handle pagination transparently
+
+**Benefits:**
+- Simpler pipeline configurations
+- Automatic API quirk handling
+- Type-safe specialized methods
+- Easier testing and maintenance
 
 ## Configuration
 
@@ -28,7 +66,7 @@ The PriceEdge connector enables FlexLink to integrate with PriceEdge's pricing p
 Edit `.env` in the project root:
 
 ```bash
-# Uncomment and set these values
+# PriceEdge API Configuration
 PRICEEDGE_BASE_URL=https://yourcompany-staging.priceedge.eu/papi
 PRICEEDGE_KEY_NAME=middleware_test
 PRICEEDGE_API_TOKEN=<your-api-token>
@@ -41,11 +79,11 @@ PRICEEDGE_API_TOKEN=<your-api-token>
 
 #### Step 3: Verify Connector Configuration
 
-The connector configuration is already created at `config/connectors/priceedge.yaml`:
+The connector configuration is at `config/connectors/priceedge.yaml`:
 
 ```yaml
-name: priceedge
-type: rest
+name: priceedge  # Registry uses this to load PriceEdgeConnector class
+type: rest       # Falls back to REST if specialized class not found
 base_url: ${PRICEEDGE_BASE_URL}
 auth:
   type: api_key
@@ -55,10 +93,14 @@ auth:
 headers:
   Content-Type: application/json
   Accept: application/json
+  User-Agent: FlexLink-Middleware/0.4.0
 timeout: 30
 retry_attempts: 3
 enabled: true
 ```
+
+**Registry Lookup:**
+The registry uses **name-first lookup** - when it sees `name: priceedge`, it loads the specialized `PriceEdgeConnector` class instead of the generic `RestConnector`.
 
 #### Step 4: Start FlexLink
 
@@ -68,155 +110,279 @@ PYTHONPATH=src uvicorn flexlink.main:app --port 8000
 
 # In another terminal, verify connector loaded
 curl http://localhost:8000/api/v1/connectors
-# Should show "priceedge" in the list
+# Should show "priceedge" in the list with type "PriceEdgeConnector"
 ```
 
-## Available Routes
+## Using in Pipelines
 
-### 1. Get Suggested Prices with Filters
+### Example: XML to PriceEdge to JSON
 
-Query suggested prices for specific items using filters.
+The specialized connector simplifies pipeline configurations:
 
-**Endpoint**: POST `/pricing/suggested-prices`
+```yaml
+# config/pipelines/xml-priceedge-json-pipeline.yaml
+name: xml-priceedge-json-pipeline
+description: Extract product IDs from XML, query PriceEdge, output JSON
 
-**Real-World Example:**
+steps:
+  # Step 1: Parse XML input
+  - name: parse_xml_products
+    type: extract
+    connector: file
+    params:
+      file_path: data/samples/article_deu_DEU.xml
+      format: xml
 
-```bash
-curl -X POST http://localhost:8000/api/v1/route \
-  -H "Content-Type: application/json" \
-  -d '{
-    "route": "/pricing/suggested-prices",
-    "method": "POST",
-    "body": {
-      "page": 1,
-      "nrOfRecords": 10000,
-      "filters": [
-        {
-          "columnName": "cd_ItemNumber",
-          "op": "containsAny",
-          "value": "12345,12346,12347,6666,77777,123123"
-        }
-      ],
-      "fields": ["cd_ItemNumber", "Value"],
-      "orderby": ["cd_ItemNumber"]
-    }
-  }'
+  # Step 2: Transform for PriceEdge query
+  - name: prepare_priceedge_request
+    type: transform
+    mapping_ref: xml-to-priceedge-request
+
+  # Step 3: Query PriceEdge (with automatic pagination)
+  - name: query_priceedge_prices
+    type: extract
+    connector: priceedge  # Uses specialized connector
+    method: POST
+    path: api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+    params:
+      body:
+        page: 1
+        nrOfRecords: 100
+        filters:
+          - columnName: cd_ItemNumber
+            op: containsAny
+            value: "{{item_ids}}"  # Template variable
+    pagination:
+      enabled: true
+      strategy: page
+      pagination_in_body: true    # PriceEdge-specific
+      page_param: page
+      size_param: nrOfRecords
+      page_size: 100
+      max_pages: 100
+      data_path: Data.data  # Automatic unwrapping
+
+  # Step 4: Transform to output format
+  - name: format_output
+    type: transform
+    mapping_ref: priceedge-to-output
+
+  # Step 5: Write JSON
+  - name: write_json
+    type: load
+    connector: file
+    params:
+      output_format: json
+      filename: "product_prices_{{timestamp}}.json"
 ```
 
-**Response:**
+**What Happens:**
+1. XML file parsed to extract product IDs
+2. Product IDs formatted for PriceEdge query
+3. **PriceEdgeConnector automatically:**
+   - Sends POST with pagination in body
+   - Fetches all pages (up to max_pages)
+   - Unwraps `Data.data` structure
+   - Returns clean list of price records
+4. Transformed to output format
+5. Written to JSON file
+
+### Specialized Connector Benefits
+
+**Before (Generic REST Connector):**
+```yaml
+# Complex configuration with manual unwrapping
+steps:
+  - name: query_api
+    type: extract
+    connector: rest_api
+    params:
+      # Manual pagination handling
+      # Manual response unwrapping in transformation
+      # Complex data path traversal
+```
+
+**After (Specialized Connector):**
+```yaml
+# Simplified configuration
+steps:
+  - name: query_prices
+    type: extract
+    connector: priceedge  # Handles everything automatically
+    pagination:
+      enabled: true
+      pagination_in_body: true
+      data_path: Data.data  # Unwrapped automatically
+```
+
+## Available Methods
+
+### 1. Query Suggested Prices (Specialized Method)
+
+**Python API:**
+
+```python
+from flexlink.core.registry import ConnectorRegistry
+
+registry = ConnectorRegistry()
+priceedge = registry.get_connector("priceedge")
+
+# Simplified method with automatic pagination
+prices = await priceedge.query_suggested_prices(
+    item_ids=["12345", "12346", "12347"],
+    page_size=100,  # Records per page
+    max_pages=10    # Safety limit
+)
+
+# Returns unwrapped list directly
+# [
+#   {"cd_ItemNumber": "12345", "Value": 99.99},
+#   {"cd_ItemNumber": "12346", "Value": 149.99},
+#   ...
+# ]
+```
+
+**Pipeline Configuration:**
+
+```yaml
+- name: get_prices
+  type: extract
+  connector: priceedge
+  method: POST
+  path: api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
+  params:
+    body:
+      page: 1
+      nrOfRecords: 100
+      filters:
+        - columnName: cd_ItemNumber
+          op: containsAny
+          value: "{{item_ids}}"
+  pagination:
+    enabled: true
+    pagination_in_body: true
+    page_param: page
+    size_param: nrOfRecords
+    page_size: 100
+    max_pages: 100
+    data_path: Data.data
+```
+
+### 2. Query Item Metadata
+
+```yaml
+- name: get_metadata
+  type: extract
+  connector: priceedge
+  method: POST
+  path: api/tables/Item
+  params:
+    body:
+      page: 1
+      nrOfRecords: 100
+  pagination:
+    enabled: true
+    pagination_in_body: true
+    data_path: Data.data
+```
+
+### 3. Query Current Prices
+
+```yaml
+- name: get_current_prices
+  type: extract
+  connector: priceedge
+  method: POST
+  path: api/tables/Item_CurrentPrices
+  params:
+    body:
+      page: 1
+      nrOfRecords: 100
+      filters:
+        - columnName: cd_ItemNumber
+          op: equals
+          value: "12345"
+  pagination:
+    enabled: true
+    pagination_in_body: true
+    data_path: Data.data
+```
+
+## Advanced Features
+
+### Body-Based Pagination
+
+PriceEdge uses **POST requests with pagination parameters in the body** (not query strings):
+
+```yaml
+pagination:
+  enabled: true
+  strategy: page
+  pagination_in_body: true  # Key setting for PriceEdge
+  page_param: page          # Body field name
+  size_param: nrOfRecords   # Body field name
+  page_size: 100
+  max_pages: 100
+```
+
+**How It Works:**
+1. First request: `{"page": 1, "nrOfRecords": 100, "filters": [...]}`
+2. If full page returned, next request: `{"page": 2, "nrOfRecords": 100, "filters": [...]}`
+3. Continues until:
+   - Empty page received
+   - Partial page (less than `nrOfRecords`)
+   - `max_pages` limit reached
+
+### Response Unwrapping
+
+PriceEdge wraps all responses in a `Data` object:
 
 ```json
 {
-  "status_code": 200,
-  "headers": {
-    "content-type": "application/json"
-  },
-  "body": {
+  "Data": {
     "data": [
-      {
-        "cd_ItemNumber": "12345",
-        "Value": 99.99
-      },
-      {
-        "cd_ItemNumber": "12346",
-        "Value": 149.99
-      },
-      {
-        "cd_ItemNumber": "12347",
-        "Value": 79.99
-      }
+      {"cd_ItemNumber": "12345", "Value": 99.99}
     ],
-    "total": 6,
+    "totalRecords": 500,
     "page": 1
-  },
-  "error": null
+  }
 }
 ```
 
-**Filter Options:**
-- `columnName`: Field to filter on (e.g., `cd_ItemNumber`)
-- `op`: Operator - `containsAny`, `equals`, `greaterThan`, etc.
-- `value`: Filter value (comma-separated for `containsAny`)
+**Automatic Unwrapping:**
+The `PriceEdgeConnector` automatically extracts `Data.data` and returns just the array:
 
-**Pagination:**
-- `page`: Page number (starts at 1)
-- `nrOfRecords`: Records per page (max 10000)
-
-### 2. Get Item Metadata
-
-Retrieve item information.
-
-**Endpoint**: POST `/pricing/items/metadata`
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:8000/api/v1/route \
-  -H "Content-Type: application/json" \
-  -d '{
-    "route": "/pricing/items/metadata",
-    "method": "POST",
-    "body": {
-      "page": 1,
-      "nrOfRecords": 100
-    }
-  }'
+```json
+[
+  {"cd_ItemNumber": "12345", "Value": 99.99}
+]
 ```
 
-### 3. Get Current Prices
+### Filter Operators
 
-Get current pricing data.
-
-**Endpoint**: POST `/pricing/current-prices`
-
-**Example:**
-
-```bash
-curl -X POST http://localhost:8000/api/v1/route \
-  -H "Content-Type: application/json" \
-  -d '{
-    "route": "/pricing/current-prices",
-    "method": "POST",
-    "body": {
-      "page": 1,
-      "nrOfRecords": 100,
-      "filters": [
-        {
-          "columnName": "cd_ItemNumber",
-          "op": "equals",
-          "value": "12345"
-        }
-      ]
-    }
-  }'
+**containsAny** (comma-separated list):
+```yaml
+filters:
+  - columnName: cd_ItemNumber
+    op: containsAny
+    value: "12345,12346,12347"
 ```
 
-### 4. Get Competitor Prices
-
-Query competitor pricing data.
-
-**Endpoint**: POST `/pricing/competitor-prices`
-
-## Quick Test Script
-
-Use the provided test script for quick validation:
-
-```bash
-# Test with single item
-./scripts/test_suggested_prices.sh "12345"
-
-# Test with multiple items (from real-world example)
-./scripts/test_suggested_prices.sh "12345,12346,12347,6666,77777,123123"
-
-# Test with large batch
-./scripts/test_suggested_prices.sh "12345,12346,12347,6666,77777,123123,111,222,333"
+**equals** (exact match):
+```yaml
+filters:
+  - columnName: cd_ItemNumber
+    op: equals
+    value: "12345"
 ```
 
-The script outputs formatted JSON showing:
-- Status code (should be 200)
-- Response headers
-- Item data with `cd_ItemNumber` and `Value` fields
-- Pagination info
+**greaterThan / lessThan** (numeric comparison):
+```yaml
+filters:
+  - columnName: Value
+    op: greaterThan
+    value: "100"
+```
 
 ## Troubleshooting
 
@@ -226,148 +392,209 @@ The script outputs formatted JSON showing:
 
 **Solutions:**
 
-1. Verify environment variables are set:
+1. Verify environment variables:
    ```bash
-   echo "Key Name: $PRICEEDGE_KEY_NAME"
+   echo "Key: $PRICEEDGE_KEY_NAME"
    echo "Token: ${PRICEEDGE_API_TOKEN:0:10}..."
+   echo "URL: $PRICEEDGE_BASE_URL"
    ```
 
 2. Check Authorization header format:
    ```bash
    # Should be: Authorization: ApiKey <key_name>:<token>
-   echo "Authorization: ApiKey $PRICEEDGE_KEY_NAME:$PRICEEDGE_API_TOKEN"
+   # Example: Authorization: ApiKey middleware_test:<your-api-token>...
    ```
 
-3. Test directly against PriceEdge API:
+3. Verify API key is active in PriceEdge admin portal
+
+4. Test directly against PriceEdge API:
    ```bash
-   curl -X POST "https://yourcompany-staging.priceedge.eu/papi/api/tables/Item_PriceList_SuggestedPrices_Suggested_Price" \
+   curl -X POST "$PRICEEDGE_BASE_URL/api/tables/Item_PriceList_SuggestedPrices_Suggested_Price" \
      -H "Authorization: ApiKey $PRICEEDGE_KEY_NAME:$PRICEEDGE_API_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"page": 1, "nrOfRecords": 1}'
    ```
-
-4. Verify API key is active in PriceEdge admin portal
 
 ### 400 Bad Request
 
 **Problem**: Invalid request format
 
 **Solutions:**
-
-- Check filter syntax matches PriceEdge API requirements
 - Verify field names are case-sensitive: `cd_ItemNumber` not `cd_itemnumber`
-- Ensure operator is valid: `containsAny`, `equals`, etc.
-- Check item numbers are comma-separated without spaces: `"12345,12346"` not `"12345, 12346"`
+- Check operator is valid for field type
+- Ensure comma-separated values have no spaces: `"12345,12346"` not `"12345, 12346"`
+- Validate filter structure matches PriceEdge API spec
 
-### Timeout (504 Gateway Timeout)
+### Timeout Issues
 
-**Problem**: Query taking too long
+**Problem**: Queries taking too long
 
 **Solutions:**
 
-1. Increase timeout in connector config:
+1. Increase timeout:
    ```yaml
+   # config/connectors/priceedge.yaml
    timeout: 60  # Increase to 60 seconds
    ```
 
-2. Reduce `nrOfRecords`:
-   ```json
-   {
-     "page": 1,
-     "nrOfRecords": 1000  # Reduce from 10000
-   }
+2. Reduce page size:
+   ```yaml
+   pagination:
+     page_size: 50  # Reduce from 100
    ```
 
-3. Check PriceEdge API performance/status
+3. Add max_pages limit:
+   ```yaml
+   pagination:
+     max_pages: 10  # Stop after 10 pages (1000 records)
+   ```
 
 ### Empty Results
 
 **Problem**: Query returns no data
 
 **Solutions:**
+- Verify item numbers exist in PriceEdge
+- Check filter field name (case-sensitive)
+- Try known valid item numbers
+- Verify operator matches data type
 
-- Verify item numbers exist in PriceEdge database
-- Check field name: `cd_ItemNumber` (case-sensitive)
-- Try with known valid item numbers from PriceEdge
-- Check filter operator matches data type
+### Wrong Connector Loaded
 
-### Connector Not Loading
-
-**Problem**: PriceEdge not in `/api/v1/connectors` list
+**Problem**: Generic `RestConnector` loaded instead of `PriceEdgeConnector`
 
 **Solutions:**
 
-1. Check environment variables are uncommented in `.env`
-2. Verify YAML syntax:
-   ```bash
-   python -c "import yaml; yaml.safe_load(open('config/connectors/priceedge.yaml'))"
+1. Verify connector name in config:
+   ```yaml
+   name: priceedge  # Exact name triggers specialized class
    ```
 
-3. Check server logs for errors:
+2. Check registry loading:
    ```bash
-   # Look for loading errors
-   grep -i "priceedge\|connector" /path/to/server.log
+   curl http://localhost:8000/api/v1/connectors | jq '.connectors[] | select(.name=="priceedge")'
+   ```
+
+3. Verify PriceEdgeConnector is exported:
+   ```python
+   python -c "from flexlink.connectors import PriceEdgeConnector; print('OK')"
    ```
 
 4. Restart server to reload connectors
 
-## Security Best Practices
-
-- ✅ Store API key name and token in environment variables
-- ✅ Never commit `.env` file to git (already in `.gitignore`)
-- ✅ Use `.env.example` for sharing configuration templates
-- ✅ Rotate API tokens periodically (regenerate in PriceEdge admin)
-- ✅ Use different tokens for staging and production
-- ✅ Limit API key permissions to minimum required in PriceEdge
-- ✅ Monitor for 401 errors indicating compromised credentials
-
 ## Performance Tips
 
-1. **Batch Queries**: Use `containsAny` to query multiple items at once
-   ```json
-   {
-     "columnName": "cd_ItemNumber",
-     "op": "containsAny",
-     "value": "12345,12346,12347"
-   }
-   ```
+### 1. Batch Queries
 
-2. **Pagination**: For large datasets, use pagination
-   ```json
-   {
-     "page": 1,
-     "nrOfRecords": 1000
-   }
-   ```
+Query multiple items in one request:
 
-3. **Field Selection**: Request only needed fields
-   ```json
-   {
-     "fields": ["cd_ItemNumber", "Value"]  // Instead of all fields
-   }
-   ```
+```yaml
+filters:
+  - columnName: cd_ItemNumber
+    op: containsAny
+    value: "{{item_ids}}"  # "12345,12346,12347,..."
+```
 
-4. **Caching** (Future): Consider caching frequent queries
+### 2. Optimize Page Size
+
+Balance between request count and response time:
+
+```yaml
+pagination:
+  page_size: 100  # Good balance
+  # Too small: Many requests (slower)
+  # Too large: Timeout risk, slower individual requests
+```
+
+### 3. Use Safety Limits
+
+Prevent runaway pagination:
+
+```yaml
+pagination:
+  max_pages: 100  # Max 10,000 records (100 * 100)
+```
+
+### 4. Select Only Needed Fields
+
+**Note**: Field selection not currently implemented, but planned:
+
+```yaml
+params:
+  body:
+    fields: ["cd_ItemNumber", "Value"]  # Future enhancement
+```
+
+### 5. Cache Results (Future)
+
+Consider implementing caching for frequently queried items using `@lru_cache` or Redis.
+
+## Security Best Practices
+
+- ✅ Store credentials in environment variables (`.env`)
+- ✅ Never commit `.env` file to git (already in `.gitignore`)
+- ✅ Use different tokens for staging and production
+- ✅ Rotate API tokens periodically
+- ✅ Limit API key permissions in PriceEdge admin
+- ✅ Monitor for 401 errors (potential credential compromise)
+- ✅ Use HTTPS for all API communication
 
 ## API Reference
 
-For complete PriceEdge API documentation, see:
-- [PriceEdge Quickstart](https://priceedge.mintlify.app/quickstart/quickstart-1)
-- [PriceEdge API Reference](https://priceedge.mintlify.app/api-reference)
+**PriceEdge Documentation:**
+- [Quickstart Guide](https://priceedge.mintlify.app/quickstart/quickstart-1)
+- [API Reference](https://priceedge.mintlify.app/api-reference)
+- [Table Endpoints](https://priceedge.mintlify.app/api-reference/tables)
 
-## Support
+**FlexLink Documentation:**
+- [Connector Configuration](../configuration/connectors.md)
+- [Pipeline Orchestration](../features/pipeline-orchestration.md)
+- [Specialized Connectors](../features/connectors/README.md#specialized-connectors)
 
-For issues specific to:
-- **FlexLink Integration**: Check FlexLink logs and documentation
-- **PriceEdge API**: Contact PriceEdge support
-- **Authentication**: Verify credentials in PriceEdge admin portal
-- **Performance**: Review query complexity and pagination
+## Extending the Pattern
+
+The PriceEdgeConnector demonstrates the **specialized connector pattern**. You can create similar connectors for other APIs:
+
+```python
+# Example: ShopwareConnector
+class ShopwareConnector(RestConnector):
+    """Specialized connector for Shopware API."""
+
+    async def get_products(self, criteria: dict) -> list[dict]:
+        """Get products with Shopware-specific pagination."""
+        # Handle Shopware's pagination quirks
+        # Unwrap Shopware's response structure
+        pass
+```
+
+**When to Use Specialized Connectors:**
+- ✅ API has non-standard response wrapping
+- ✅ Pagination uses unusual parameters or methods
+- ✅ Authentication requires custom header formats
+- ✅ You want type-safe methods for common operations
+- ✅ API has complex query patterns worth encapsulating
+
+**See Also:**
+- [Creating Specialized Connectors](../features/connectors/README.md#creating-specialized-connectors)
+- [Connector Inheritance Model](../../PRPs/task/prp_connector_inheritance_model.md)
 
 ## Changelog
 
+### 2025-12-31 - Specialized Connector Implementation
+- ✅ Created `PriceEdgeConnector` specialized class
+- ✅ Implemented automatic response unwrapping
+- ✅ Added `query_suggested_prices()` method with built-in pagination
+- ✅ Body-based pagination support
+- ✅ Registry name-first lookup pattern
+- ✅ Comprehensive unit tests (6 tests, 100% coverage)
+- ✅ Production-ready implementation
+
 ### 2024-12-23 - Initial Release
 - PriceEdge connector configuration
-- 4 routes: suggested prices, item metadata, current prices, competitor prices
+- Route-based access to PriceEdge tables
 - ApiKey authentication with custom header format
-- Test script for suggested prices endpoint
-- Comprehensive documentation and troubleshooting guide
+- Basic documentation and troubleshooting guide
+
+---
+
+**Status:** ✅ Production Ready | **Last Updated:** 2025-12-31

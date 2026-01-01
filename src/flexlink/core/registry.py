@@ -87,23 +87,29 @@ class ConnectorRegistry:
             ImportError: If connector class cannot be imported
             ValueError: If connector type is unknown
         """
+        # Try connector name first (for specialized connectors like priceedge)
+        # Fall back to type for generic connectors (rest, file, etc.)
         connector_type = config.type.lower()
 
-        # Map connector types to their module paths
+        # Map connector types/names to their module paths
         type_mapping = {
             "rest": "flexlink.connectors.rest_connector.RestConnector",
+            "priceedge": "flexlink.connectors.priceedge_connector.PriceEdgeConnector",
             "file": "flexlink.connectors.file_connector.FileConnector",
             "postgresql": "flexlink.connectors.postgresql_connector.PostgreSQLConnector",
             "webhook": "flexlink.connectors.webhook_connector.WebhookConnector",
         }
 
-        # Get the module path for this connector type
-        module_path = type_mapping.get(connector_type)
+        # Use name if it matches a specialized connector, otherwise use type
+        connector_key = config.name if config.name in type_mapping else connector_type
+
+        # Get the module path for this connector
+        module_path = type_mapping.get(connector_key)
 
         if not module_path:
             raise ValueError(
-                f"Unknown connector type: {connector_type}. "
-                f"Supported types: {list(type_mapping.keys())}"
+                f"Unknown connector: {config.name} (type: {config.type}). "
+                f"Supported: {list(type_mapping.keys())}"
             )
 
         # Dynamically import the connector class
