@@ -314,12 +314,12 @@ uvicorn flexlink.main:app --reload --port 8000
 uvicorn flexlink.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-The API will be available at `http://localhost:8000`
+The application will be available at `http://localhost:8000`
 
-- **API Root**: `http://localhost:8000/` - API information and links
-- **API Documentation**: `http://localhost:8000/docs` - Interactive Swagger UI
-- **Web Dashboard**: `http://localhost:8000/ui` - Monitoring and management interface
-- **Health Check**: `http://localhost:8000/health` - System health status
+- **Web Dashboard**: `http://localhost:8000/` - Monitoring and management interface (UI)
+- **API Root**: `http://localhost:8000/api` - API information and links
+- **API Documentation**: `http://localhost:8000/api/docs` - Interactive Swagger UI
+- **Health Check**: `http://localhost:8000/api/health` - System health status
 
 ## Web Dashboard
 
@@ -330,7 +330,7 @@ FlexLink includes a modern web-based monitoring dashboard built with Material De
 Once the server is running, visit:
 
 ```
-http://localhost:8000/ui
+http://localhost:8000/
 ```
 
 ### UI Features
@@ -457,7 +457,7 @@ uv pip install -e ".[dev]"
 # Run with auto-reload
 uvicorn flexlink.main:app --reload --port 8000
 
-# Access UI at http://localhost:8000/ui
+# Access UI at http://localhost:8000/
 ```
 
 **Testing:**
@@ -2217,7 +2217,7 @@ docker logs flexlink
 docker inspect --format='{{json .State.Health}}' flexlink | jq
 
 # Manually test health endpoint
-docker exec flexlink curl http://localhost:8000/health
+docker exec flexlink curl http://localhost:8000/api/health
 ```
 
 ### Performance Issues
@@ -2349,7 +2349,7 @@ Contributions are welcome! Please:
 For issues, questions, or contributions:
 
 - GitHub Issues: [Add repository URL]
-- Documentation: `http://localhost:8000/docs` (when running)
+- Documentation: `http://localhost:8000/api/docs` (when running)
 - Architecture Docs: [PRPs/flexlink-architecture-diagram.md](./PRPs/flexlink-architecture-diagram.md)
 
 ## Acknowledgments
