@@ -65,7 +65,7 @@ Even with the 10 MB file size cap, blocking I/O operations delay all other concu
 
 **Description:**
 
-The `/api/v1/files/forward` endpoint forwards records sequentially in the request context:
+The `/api/v1/files/forward` endpoint still executes record forwarding sequentially within the request context:
 - Individual mode: Hundreds of sequential `await route_request()` calls in a single HTTP request
 - Client connection remains open for the entire batch
 - FastAPI worker is busy for the entire file-processing duration
@@ -87,17 +87,23 @@ Upload 5,000 record CSV → Forward to slow external API (200ms/record)
 
 **Proposed Solutions:**
 
-1. **Background Task Queue (Recommended):**
+Since v0.4.2 already includes the TaskManager/background execution infrastructure for pipelines, reuse or extend it here instead of inventing a new queue.
+
+1. **TaskManager Integration (Recommended):**
    ```python
-   # Return immediately with task ID
-   task_id = await queue.enqueue(forward_records, records, route)
-   return {"task_id": task_id, "status": "processing"}
+   run_id = task_manager.submit_task(
+       pipeline_name="file-forward",
+       orchestrator=file_forward_orchestrator,
+       inputs={"records": records, "route": route}
+   )
+   return {"run_id": run_id, "status": "queued"}
 
-   # Poll for status
-   GET /api/v1/files/forward/status/{task_id}
+   # Clients poll existing /runs/{run_id} endpoint
    ```
+   - Option A: Invoke an internal pipeline definition dedicated to file forwarding so we reuse orchestration + history logging.
+   - Option B: Introduce a lightweight task wrapper that mirrors the TaskManager API for non-pipeline jobs.
 
-2. **Concurrent Batching:**
+2. **Concurrent Batching (Short-Term Relief):**
    ```python
    # Process N records concurrently
    async with asyncio.TaskGroup() as tg:
@@ -128,15 +134,15 @@ Upload 5,000 record CSV → Forward to slow external API (200ms/record)
 
 **Acceptance Criteria:**
 - [ ] Large file uploads don't block workers for extended periods
-- [ ] Progress visibility for long-running operations
+- [ ] Progress visibility for long-running operations (reuse `/runs/{run_id}` + `/runs/{run_id}/logs`)
 - [ ] Configurable concurrency limits
 - [ ] Graceful handling of slow/failed downstream APIs
-- [ ] Client can poll for completion status
+- [ ] Client can poll for completion status using existing background execution endpoints
 - [ ] All existing tests pass
 - [ ] New tests for async/background processing
 
 **Additional Considerations:**
-- Task queue library: Celery, Dramatiq, or simple asyncio.Queue
+- Prefer reusing TaskManager/RunHistory infrastructure introduced in v0.4.2
 - Progress tracking: WebSocket updates or SSE for real-time status
 - Error handling: Partial success scenarios (500/1000 records forwarded)
 - Retry logic: Failed records can be retried independently

@@ -613,7 +613,7 @@ steps:
 
 ## Future Enhancements
 
-### v0.5.0: Background Execution & Scheduling ✅ Implemented
+### v0.4.2: Background Execution & Scheduling ✅ Implemented
 
 **Background Execution**:
 

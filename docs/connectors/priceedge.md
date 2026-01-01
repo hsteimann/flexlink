@@ -93,7 +93,7 @@ auth:
 headers:
   Content-Type: application/json
   Accept: application/json
-  User-Agent: FlexLink-Middleware/0.4.0
+  User-Agent: FlexLink-Middleware/0.4.2
 timeout: 30
 retry_attempts: 3
 enabled: true

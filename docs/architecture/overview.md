@@ -317,31 +317,24 @@ YAML files define behavior, validated by Pydantic models.
 
 ## Evolution and Future
 
-### Current State (v0.3.x)
+### Current State (v0.4.2)
 
 FlexLink provides:
-- ✅ REST, File, Webhook, Database connectors
-- ✅ YAML-based transformations and validations
-- ✅ Route processing (simple workflows)
-- ✅ Pipeline orchestration (multi-step workflows)
-- ✅ Connection pooling and retry logic
+- ✅ REST, File, Webhook, Database connectors plus the specialized PriceEdge connector
+- ✅ YAML-based transformations and validations with reusable mappings
+- ✅ Route processing for single-step flows and pipeline orchestration for complex workflows
+- ✅ Background execution with TaskManager, `/runs/{run_id}` polling, and SQLite-backed run history
+- ✅ Cron/interval scheduling via APScheduler with automatic history logging
+- ✅ Connection pooling, retry logic, and structured logging
 
-### Planned Enhancements (v0.4.x+)
+### Planned Enhancements (v0.5.0+)
 
-**v0.4.0 - Advanced Operations**:
-- Database UPDATE and UPSERT operations
-- Batch processing for high throughput
-- Conditional branching in pipelines
+See [docs/roadmap.md](../roadmap.md) for the detailed roadmap. Highlights presently under consideration:
 
-**v0.5.0 - Scheduling**:
-- Cron-based pipeline execution (APScheduler)
-- Background task queue for long-running pipelines
-- Run history and status tracking (SQLite/PostgreSQL)
-
-**v0.6.0 - Enterprise Features**:
-- Distributed execution (Celery/Dramatiq)
-- Transaction support across multiple databases
-- Advanced monitoring (Prometheus metrics)
+- Message queue connectors (RabbitMQ/Kafka/SQS)
+- Advanced data mapping (JSONata) and conditional branching
+- Streaming/batch processing improvements for large datasets
+- Distributed execution, multi-database transactions, and advanced observability
 
 **Why This Roadmap?**:
 - Each version adds value independently

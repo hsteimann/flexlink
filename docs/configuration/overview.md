@@ -642,32 +642,7 @@ python -m flexlink.cli test-mapping \
 
 ## Migration Between Versions
 
-### v0.3.x → v0.4.0 (Example)
-
-**Backward Compatible**:
-```yaml
-# v0.3.x config still works in v0.4.0
-- path: /data/orders
-  method: POST
-  connector: postgres
-  # ... existing fields ...
-```
-
-**New Features (Optional)**:
-```yaml
-# v0.4.0 adds optional UPSERT
-- path: /data/orders
-  method: PATCH  # New: Maps to UPSERT
-  connector: postgres
-  conflict_columns: [order_id]  # New field
-```
-
-**Migration Path**:
-1. Upgrade FlexLink to v0.4.0
-2. Existing configs continue working
-3. Optionally adopt new features
-4. Test new features in development first
-5. Gradually roll out to production
+Configurations remain backward compatible—new fields are optional and additive. See [docs/roadmap.md](../roadmap.md) and release notes for specific upgrade examples.
 
 ## Related Documentation
 

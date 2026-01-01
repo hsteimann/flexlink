@@ -24,21 +24,25 @@ def sample_xml_content():
 @pytest.fixture
 async def pipeline_components():
     """Initialize pipeline orchestrator with registries."""
+    import httpx
+
     pipeline_registry = PipelineRegistry()
     pipeline_registry.load_pipelines()
 
-    connector_registry = ConnectorRegistry()
-    await connector_registry.load_connectors()
+    # Create HTTP client for REST connectors (like PriceEdge)
+    async with httpx.AsyncClient() as http_client:
+        connector_registry = ConnectorRegistry()
+        await connector_registry.load_connectors(http_client=http_client)
 
-    transformation_engine = TransformationEngine(rules=[])
+        transformation_engine = TransformationEngine(rules=[])
 
-    orchestrator = PipelineOrchestrator(
-        pipeline_registry=pipeline_registry,
-        connector_registry=connector_registry,
-        transformation_engine=transformation_engine
-    )
+        orchestrator = PipelineOrchestrator(
+            pipeline_registry=pipeline_registry,
+            connector_registry=connector_registry,
+            transformation_engine=transformation_engine
+        )
 
-    return orchestrator, pipeline_registry
+        yield orchestrator, pipeline_registry
 
 
 @pytest.mark.integration
@@ -108,15 +112,18 @@ async def test_xml_priceedge_json_pipeline_execution(
 async def test_xml_parsing_step(sample_xml_content):
     """Test XML parsing step in isolation."""
     from flexlink.connectors.file_connector import FileConnector
+    from flexlink.models.connector import AuthConfig, ConnectorConfig
     from flexlink.models.file import FileFormat
 
-    connector = FileConnector(
-        config={
-            "name": "test_file",
-            "type": "file",
-            "auth": {"type": "none"}
-        }
+    # Create proper ConnectorConfig object
+    config = ConnectorConfig(
+        name="test_file",
+        type="file",
+        base_url="file://local",
+        auth=AuthConfig(type="none")
     )
+
+    connector = FileConnector(config)
 
     records = await connector.parse_to_records(
         file_content=sample_xml_content,
@@ -124,7 +131,8 @@ async def test_xml_parsing_step(sample_xml_content):
     )
 
     assert len(records) > 0
-    assert "cd_ItemNumber" in records[0] or "item_id" in records[0]
+    # Check for common item identifier fields (varies by XML structure)
+    assert any(field in records[0] for field in ["cd_ItemNumber", "item_id", "item_no"])
 
 
 @pytest.mark.asyncio

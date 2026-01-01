@@ -219,7 +219,7 @@ PipelineExecutionResult(
 )
 ```
 
-### Future Observability (v0.5.0+)
+### Future Observability (see Roadmap)
 
 - **Metrics**: Prometheus counters, histograms, gauges
 - **Tracing**: OpenTelemetry spans for distributed tracing
@@ -235,14 +235,11 @@ New features should not break existing configurations or code.
 
 ### Versioning Strategy
 
-**Semantic Versioning**:
-- **v0.3.x → v0.4.0**: New features, no breaking changes
-- **v0.4.x → v0.5.0**: New features, no breaking changes
-- **v1.0.0 → v2.0.0**: Breaking changes allowed (with migration guide)
+For version timelines and planned milestones, refer to [docs/roadmap.md](../roadmap.md).
 
 ### Configuration Evolution
 
-**Example: Adding Database UPSERT (v0.4.0)**
+**Example: Adding Database UPSERT (v0.4.x)**
 
 Existing INSERT configs keep working:
 ```yaml

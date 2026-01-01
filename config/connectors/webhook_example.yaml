@@ -40,4 +40,4 @@ headers:
 
 timeout: 30
 retry_attempts: 1  # Not used (webhook has own retry logic)
-enabled: true
+enabled: false  # Disabled by default (example connector)

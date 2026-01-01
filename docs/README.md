@@ -65,12 +65,12 @@ FlexLink is an ETL (Extract, Transform, Load) middleware that provides a flexibl
 
 ## Current vs Roadmap
 
-- **Current (v0.4.0)**: REST/File/Webhook/Database connectors, PriceEdge example, transformation engine, validation system, route processing, pipeline orchestration (extract/transform/load), basic scheduling in UTC.
-- **Roadmap (v0.5.0+)**: Background execution, advanced scheduling (cron), message queue connectors, richer pipeline features, expanded observability.
+- **Current (v0.4.2)**: REST/File/Webhook/Database connectors, specialized connector pattern (PriceEdge), transformation + validation engine, route processing, pipeline orchestration, background execution with run history, APScheduler-based cron/interval scheduling, and comprehensive test suite (685 tests, 71% coverage).
+- **Roadmap**: See [docs/roadmap.md](roadmap.md) for the authoritative list of upcoming v0.5.0+ features.
 
 ## Version
 
-This documentation covers FlexLink v0.4.0 (current) with references to v0.5.0+ (planned features).
+This documentation covers FlexLink v0.4.2 (current) with references to v0.5.0+ (planned features).
 
 ---
 

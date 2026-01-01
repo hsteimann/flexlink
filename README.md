@@ -4,8 +4,30 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-477%20passing-brightgreen.svg)](./src/tests/)
-[![Coverage](https://img.shields.io/badge/coverage-65%25-yellow.svg)](./htmlcov/index.html)
+[![Tests](https://img.shields.io/badge/tests-685%20passing-brightgreen.svg)](./src/tests/)
+[![Coverage](https://img.shields.io/badge/coverage-71%25-brightgreen.svg)](./htmlcov/index.html)
+
+- [FlexLink Middleware](#flexlink-middleware)
+  - [Overview](#overview)
+  - [Architecture](#architecture)
+  - [Quick Start](#quick-start)
+  - [Web Dashboard](#web-dashboard)
+  - [Configuration](#configuration)
+  - [Pipeline Orchestration](#pipeline-orchestration)
+  - [API Documentation](#api-documentation)
+  - [File Processing Examples](#file-processing-examples)
+  - [Data Transformation](#data-transformation)
+  - [YAML Mapping Configurations](#yaml-mapping-configurations)
+  - [Connector Development Guide](#connector-development-guide)
+  - [Testing](#testing)
+  - [Docker Deployment](#docker-deployment)
+  - [Troubleshooting](#troubleshooting)
+  - [Development](#development)
+  - [Roadmap](#roadmap)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Support](#support)
+  - [Acknowledgments](#acknowledgments)
 
 ## Overview
 
@@ -24,22 +46,21 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - **Request Routing**: Pattern-based routing with path parameters and wildcard support
 - **Batch Ingestion**: Upload files → Transform records → Forward to REST connectors or databases
 - **Extensible Architecture**: Plugin-based connector system for easy integration additions
-- **Production Ready**: 477 tests (100% pass rate), comprehensive error handling, async-first design
+- **Production Ready**: 685 tests (100% pass rate), comprehensive error handling, async-first design
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 
 ### Recent Improvements
 
-**v0.5.0 - Specialized Connector Architecture** (December 2025)
-- ✅ **Specialized Connectors**: New inheritance-based pattern for API-specific behavior encapsulation
-- ✅ **PriceEdgeConnector**: First specialized connector with automatic response unwrapping and body-based pagination
-- ✅ **Name-First Registry Lookup**: Registry intelligently loads specialized vs. generic connectors based on configuration name
-- ✅ **Simplified Pipelines**: Specialized connectors reduce pipeline complexity by handling API quirks automatically
-- ✅ **Type-Safe Methods**: Custom methods like `query_suggested_prices()` provide cleaner programmatic access
-- ✅ **Backwards Compatible**: Existing connectors unaffected, name fallback to type ensures compatibility
-- ✅ **65 Tests**: All connector tests passing, including 6 new PriceEdge specialized connector tests (100% coverage)
+**v0.4.2 - Specialized Connectors & Background Execution** (December 2025)
+- ✅ **Specialized Connector Pattern**: New inheritance-based model that lets connectors declare API-specific behavior without complicating pipelines
+- ✅ **PriceEdgeConnector**: First specialized connector with automatic response unwrapping, body-based pagination, and helper methods like `query_suggested_prices()`
+- ✅ **Background Pipeline Execution**: Async TaskManager, `/runs/{run_id}` polling endpoint, and log streaming prevent long ETL jobs from blocking HTTP workers
+- ✅ **Scheduling & Run History**: APScheduler-backed cron/interval execution with results persisted to SQLite history for audit trails
+- ✅ **Name-First Registry Lookup**: Registry prioritizes connector names (e.g., `priceedge`) before falling back to generic types, keeping everything backwards compatible
+- ✅ **65 Tests**: Connector and background-execution suites expanded (including 6 new PriceEdge tests) to maintain 100% coverage for these features
 
-**v0.4.1 - Web UI Monitoring Dashboard** (December 2024)
+**v0.4.1 - Web UI Monitoring Dashboard** (December 2025)
 - ✅ **Material Design 3 UI**: Modern web dashboard built with NiceGUI and Material You design system
 - ✅ **Pipeline Monitoring**: View, execute, and monitor pipelines through an intuitive web interface
 - ✅ **Real-time Status**: Live status updates for pipeline executions with auto-refresh
@@ -50,7 +71,7 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - ✅ **Custom Exceptions**: User-friendly error handling with specific exception types
 - ✅ **57 Tests**: Comprehensive API client tests with 92% coverage on core components
 
-**v0.4.0 - Pipeline Orchestration Layer** (December 2024)
+**v0.4.0 - Pipeline Orchestration Layer** (December 2025)
 - ✅ **Declarative Pipelines**: Define complete Extract → Transform → Load workflows in YAML configuration
 - ✅ **Multi-Step Execution**: Chain multiple extraction, transformation, and load operations sequentially
 - ✅ **Pagination Support**: Automatic data fetching with offset/limit, cursor, and page-based strategies
@@ -60,7 +81,7 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - ✅ **HTTP API**: Execute pipelines via REST endpoints with real-time status and metrics
 - ✅ **328 Tests**: Added 25 new tests for pipeline orchestration (steps, orchestrator, API) - all passing
 
-**v0.3.1 - Webhook Output Connector** (December 2024)
+**v0.3.1 - Webhook Output Connector** (December 2025)
 - ✅ **Webhook Notifications**: New webhook connector sends HTTP POST notifications to external endpoints
 - ✅ **HMAC Signatures**: HMAC-SHA256 signature generation for webhook security and payload verification
 - ✅ **Multiple Auth Methods**: Support for Bearer tokens, API keys, Basic auth, and custom headers
@@ -69,7 +90,7 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - ✅ **Statistics Tracking**: Monitor delivery success rates, attempt counts, and performance metrics
 - ✅ **303 Tests**: Added 9 comprehensive webhook tests - all passing (100% coverage)
 
-**v0.3.0 - PostgreSQL Database Output Connector** (December 2024)
+**v0.3.0 - PostgreSQL Database Output Connector** (December 2025)
 - ✅ **Database Persistence**: New PostgreSQL connector writes validated data directly to databases
 - ✅ **Connection Pooling**: Production-ready connection management with configurable pool size (2-10 connections)
 - ✅ **INSERT Operations**: Simplified MVP with INSERT support, parameterized queries for SQL injection protection
@@ -77,27 +98,27 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - ✅ **SSL/TLS Support**: Encrypted database connections with automatic sslmode configuration
 - ✅ **294 Tests**: Added 24 new tests (11 model tests + 13 integration tests) - all passing
 
-**v0.2.3 - Configuration-Driven File Connector** (December 2024)
+**v0.2.3 - Configuration-Driven File Connector** (December 2025)
 - ✅ **Unified Connector Management**: File connector now registered in ConnectorRegistry like REST connectors
 - ✅ **YAML Configuration**: File connector configurable via `config/connectors/file.yaml`
 - ✅ **Consistent Architecture**: All connectors share same lifecycle and can be enabled/disabled via config
 - ✅ **270 Tests**: All existing tests pass with new architecture
 
-**v0.2.2 - File-to-REST Integration** (December 2024)
+**v0.2.2 - File-to-REST Integration** (December 2025)
 - ✅ **File-to-REST Pipeline**: New `/api/v1/files/forward` endpoint bridges file processing with routing/transformation pipeline
 - ✅ **Batch Ingestion Workflows**: Parse files (CSV/JSON/XML) → Apply transformations → Forward to REST APIs
 - ✅ **Dual Forwarding Modes**: Individual (one request per record) or batch (all records in one request)
 - ✅ **Transformation Integration**: File records flow through route-level and connector-level transformations
 - ✅ **270 Tests**: Added 5 comprehensive tests for file-to-REST forwarding with transformations
 
-**v0.2.1 - File Persistence & Async Download** (December 2024)
+**v0.2.1 - File Persistence & Async Download** (December 2025)
 - ✅ **Async File Processing**: Upload endpoint now saves processed files for later download (default behavior)
 - ✅ **Download Persistence**: New `GET /api/v1/files/download/{file_id}` endpoint for async file retrieval
 - ✅ **File TTL Management**: Automatic 24-hour retention with cleanup endpoint for expired files
 - ✅ **Flexible Upload Modes**: Choose between async download, validation only, or immediate file return
 - ✅ **265 Tests**: Added 8 new tests for download persistence and cleanup functionality
 
-**v0.2.0 - Architectural Enhancements** (December 2024)
+**v0.2.0 - Architectural Enhancements** (December 2025)
 - ✅ **HTTP Status Code Propagation**: Proper REST semantics with accurate status codes (404, 500, etc.)
 - ✅ **Query Parameter Support**: GET/DELETE requests now properly use query strings instead of JSON bodies
 - ✅ **Connector Transform Hooks**: Connectors can implement custom transformations for system-specific quirks
@@ -1817,7 +1838,7 @@ If a response transformation fails, the original response is returned and an err
 }
 ```
 
-## YAML Mapping Configurations (Phase 2 - Week 2)
+## YAML Mapping Configurations
 
 FlexLink supports declarative mapping configurations that separate transformation logic from route definitions.
 
@@ -2003,7 +2024,7 @@ Optional methods:
 
 ## Testing
 
-FlexLink has comprehensive test coverage (194 tests, 100% pass rate).
+FlexLink has comprehensive test coverage (685 tests, 71% coverage, 100% pass rate).
 
 ### Running Tests
 
@@ -2276,33 +2297,26 @@ pytest src/tests/ -v
 
 ## Roadmap
 
-### Current Version (v0.4.0)
+### Current Version (v0.4.2)
 
-- ✅ Pipeline orchestration (Extract → Transform → Load workflows)
-- ✅ REST API integration with multiple auth methods
-- ✅ Webhook output connector with HMAC signatures
-- ✅ PostgreSQL database output connector
-- ✅ File processing (CSV, JSON, XML)
-- ✅ Data transformation and validation engine
-- ✅ Request routing with path parameters
-- ✅ Multi-step pipelines with pagination and retry logic
-- ✅ File-to-REST and File-to-Database pipelines
-- ✅ Docker deployment
-- ✅ Comprehensive test suite (328 tests, 100% pass rate)
+- ✅ Pipeline orchestration (Extract → Transform → Load workflows) with per-step error handling
+- ✅ Specialized connector architecture plus the `PriceEdgeConnector` for automatic unwrapping/pagination
+- ✅ REST, webhook, PostgreSQL, and file connectors with authentication, batching, and validation hooks
+- ✅ Background pipeline execution with `/runs/{run_id}` polling, log streaming, and SQLite-backed run history
+- ✅ Cron/interval scheduling powered by APScheduler with automatic history logging
+- ✅ File-to-REST and File-to-Database pipelines, transformation engine, and declarative mappings
+- ✅ Docker deployment, request routing with parameters, and a comprehensive automated test suite
 
-### Planned Features (Phase 2 - v0.5.0+)
+### Next Major Release (v0.5.0 - In Planning)
 
-See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](./PRPs/active/flexlink-middleware-mvp-PHASE2.md) for details:
+Scope is being redefined. See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](./PRPs/active/flexlink-middleware-mvp-PHASE2.md) for the evolving plan, which currently targets:
 
-- Background pipeline execution
-- Advanced scheduling (cron-based triggers)
-- Message queue connectors (RabbitMQ, Kafka)
+- Message queue connectors (RabbitMQ, Kafka) for event streaming
 - Advanced data mapping (JSONata expressions)
-- Streaming for large files (>10MB)
+- Streaming support for very large files (>10MB) and expanded file formats
 - Additional connector types (GraphQL, SOAP, gRPC, WebSocket)
-- Enhanced observability (OpenTelemetry, Prometheus)
-- Circuit breaker patterns
-- API rate limiting
+- Enhanced observability (OpenTelemetry, Prometheus) with dashboards/metrics
+- Circuit breaker patterns, caching, and API rate limiting
 
 ### Enterprise Features
 
