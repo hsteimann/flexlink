@@ -18,6 +18,16 @@ class TransformationRule(BaseModel):
         description="Default value if source field is missing"
     )
 
+    # Field filtering
+    include_fields: list[str] | None = Field(
+        default=None,
+        description="Only keep these fields in output (supports dot notation). Applied after transformations."
+    )
+    exclude_fields: list[str] | None = Field(
+        default=None,
+        description="Remove these fields from output (supports dot notation). Takes precedence over include_fields."
+    )
+
 
 class RouteConfig(BaseModel):
     """Route configuration mapping incoming requests to connectors."""

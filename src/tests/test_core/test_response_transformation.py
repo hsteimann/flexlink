@@ -329,3 +329,214 @@ async def test_response_transformation_priceedge_example(mock_registry):
     assert "items" in response.body
     assert len(response.body["items"]) == 2
     assert response.body["items"][0]["cd_ItemNumber"] == "ITEM001"
+
+@pytest.mark.asyncio
+async def test_response_filtering_with_include_fields(mock_registry):
+    """Test response transformation with include_fields."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="name",
+                target_field="name",
+                include_fields=["id", "name", "email"]
+            )
+        ]
+    )
+
+    # Mock response with extra fields
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "password": "hashed_password",
+            "internal_id": 12345
+        }
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body == {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john@example.com"
+    }
+    assert "password" not in response.body
+    assert "internal_id" not in response.body
+
+
+@pytest.mark.asyncio
+async def test_response_filtering_with_exclude_fields(mock_registry):
+    """Test response transformation with exclude_fields."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="name",
+                target_field="name",
+                exclude_fields=["password", "internal_id", "ssn"]
+            )
+        ]
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={
+            "id": 1,
+            "name": "John Doe",
+            "email": "john@example.com",
+            "password": "hashed_password",
+            "internal_id": 12345,
+            "ssn": "123-45-6789"
+        }
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["id"] == 1
+    assert response.body["name"] == "John Doe"
+    assert response.body["email"] == "john@example.com"
+    assert "password" not in response.body
+    assert "internal_id" not in response.body
+    assert "ssn" not in response.body
+
+
+@pytest.mark.asyncio
+async def test_response_filtering_list_responses(mock_registry):
+    """Test filtering works with list responses."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="name",
+                target_field="name",
+                exclude_fields=["password"]
+            )
+        ]
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body=[
+            {"id": 1, "name": "John", "password": "hash1"},
+            {"id": 2, "name": "Jane", "password": "hash2"}
+        ]
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert len(response.body) == 2
+    for user in response.body:
+        assert "password" not in user
+        assert "id" in user
+        assert "name" in user
+
+
+@pytest.mark.asyncio
+async def test_response_filtering_nested_fields(mock_registry):
+    """Test filtering with nested field paths."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="user.name",
+                target_field="user.name",
+                exclude_fields=["user.password", "user.internal_notes"]
+            )
+        ]
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={
+            "user": {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "password": "secret",
+                "internal_notes": "VIP customer"
+            }
+        }
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["user"]["name"] == "John Doe"
+    assert response.body["user"]["email"] == "john@example.com"
+    assert "password" not in response.body["user"]
+    assert "internal_notes" not in response.body["user"]
+
+
+@pytest.mark.asyncio
+async def test_response_filtering_with_transformation(mock_registry):
+    """Test filtering combined with field transformation."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/products",
+        connector="test",
+        target_path="/products",
+        response_transformations=[
+            TransformationRule(
+                source_field="internal_code",
+                target_field="product_code",
+                transformation="upper",
+                exclude_fields=["internal_code", "cost_price"]
+            )
+        ]
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={
+            "internal_code": "abc123",
+            "name": "Widget",
+            "cost_price": 5.99,
+            "sale_price": 9.99
+        }
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/products", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["product_code"] == "ABC123"  # Transformed
+    assert response.body["name"] == "Widget"
+    assert response.body["sale_price"] == 9.99
+    assert "internal_code" not in response.body  # Excluded
+    assert "cost_price" not in response.body  # Excluded

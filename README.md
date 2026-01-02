@@ -641,6 +641,17 @@ transformations:
 - Default values
 - List transformations
 - Data validation with custom error messages
+- **Field filtering** (include/exclude fields)
+
+**Example with Filtering:**
+```yaml
+response_transformations:
+  - source_field: name
+    target_field: name
+    exclude_fields:
+      - password
+      - internal_id
+```
 
 For comprehensive guide with examples, validation rules, and best practices, see **[Transformation Guide](./docs/features/transformations.md)**.
 

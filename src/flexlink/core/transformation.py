@@ -37,10 +37,11 @@ class TransformationEngine:
             data: Input data dictionary
 
         Returns:
-            Transformed data dictionary
+            Transformed and filtered data dictionary
         """
         result = data.copy()
 
+        # Apply transformation rules sequentially
         for rule in self.rules:
             try:
                 result = await self._apply_rule(rule, result)
@@ -52,6 +53,36 @@ class TransformationEngine:
                 raise ValueError(
                     f"Transformation failed for {rule.source_field}: {e}"
                 ) from e
+
+        # Apply field filtering
+        # Collect all include/exclude from rules
+        all_includes = []
+        all_excludes = []
+        has_include_filter = False
+        has_exclude_filter = False
+
+        for rule in self.rules:
+            if rule.include_fields is not None:
+                all_includes.extend(rule.include_fields)
+                has_include_filter = True
+            if rule.exclude_fields is not None:
+                all_excludes.extend(rule.exclude_fields)
+                has_exclude_filter = True
+
+        # Apply filtering if any rules specified filters
+        if has_include_filter or has_exclude_filter:
+            # Remove duplicates while preserving order
+            unique_includes = list(dict.fromkeys(all_includes)) if has_include_filter else None
+            unique_excludes = list(dict.fromkeys(all_excludes)) if has_exclude_filter else None
+
+            try:
+                result = self._filter_fields(result, unique_includes, unique_excludes)
+                logger.debug(
+                    f"Applied field filtering: include={unique_includes}, exclude={unique_excludes}"
+                )
+            except Exception as e:
+                logger.error(f"Field filtering failed: {e}")
+                raise ValueError(f"Field filtering failed: {e}") from e
 
         return result
 
@@ -196,3 +227,82 @@ class TransformationEngine:
             raise ValueError(
                 f"Failed to apply transformation '{transformation}' to value '{value}': {e}"
             ) from e
+
+    def _filter_fields(
+        self,
+        data: dict[str, Any],
+        include_fields: list[str] | None,
+        exclude_fields: list[str] | None
+    ) -> dict[str, Any]:
+        """
+        Filter fields from data based on include/exclude lists.
+
+        Rules:
+        - If include_fields specified: Only keep listed fields (whitelist)
+        - If exclude_fields specified: Remove listed fields (blacklist)
+        - If both specified: Exclude takes precedence
+        - Supports dot notation for nested fields (e.g., "user.email")
+
+        Args:
+            data: Dictionary to filter
+            include_fields: Fields to keep (None = keep all)
+            exclude_fields: Fields to remove (None = remove none)
+
+        Returns:
+            Filtered dictionary
+        """
+        # Handle empty include list (return empty dict)
+        if include_fields is not None and len(include_fields) == 0:
+            return {}
+
+        # No filtering if both are None
+        if include_fields is None and exclude_fields is None:
+            return data
+
+        result = {}
+
+        # Build include set (all fields if not specified)
+        if include_fields:
+            include_set = set(include_fields)
+        else:
+            include_set = set(self._get_all_field_paths(data))
+
+        # Build exclude set
+        exclude_set = set(exclude_fields) if exclude_fields else set()
+
+        # Apply filtering - only include fields not in exclude set
+        for field_path in sorted(include_set):  # Sort to process parent paths first
+            if field_path not in exclude_set:
+                value = self._get_nested_value(data, field_path)
+                if value is not None:
+                    self._set_nested_value(result, field_path, value)
+
+        return result
+
+    def _get_all_field_paths(self, data: dict[str, Any], prefix: str = "") -> list[str]:
+        """
+        Get all field paths in a nested dictionary.
+
+        Only returns leaf paths (non-dict values) to avoid copying entire nested structures.
+
+        Args:
+            data: Dictionary to traverse
+            prefix: Current path prefix (for recursion)
+
+        Returns:
+            List of all leaf field paths (dot notation)
+        """
+        paths = []
+
+        for key, value in data.items():
+            current_path = f"{prefix}.{key}" if prefix else key
+
+            # Only add leaf values (non-dicts) to paths
+            if isinstance(value, dict):
+                # Recurse into nested dicts
+                paths.extend(self._get_all_field_paths(value, current_path))
+            else:
+                # Add leaf value
+                paths.append(current_path)
+
+        return paths

@@ -106,6 +106,145 @@ transformations:
     default_value: "pending"
 ```
 
+## Field Filtering
+
+Filter which fields appear in the output after transformations are applied.
+
+### Include Fields (Whitelist)
+
+Keep only specified fields in the output:
+
+```yaml
+response_transformations:
+  - source_field: name
+    target_field: name
+    include_fields:
+      - id
+      - name
+      - email
+```
+
+**Input:**
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "hashed_password",
+  "internal_id": 12345
+}
+```
+
+**Output:**
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+```
+
+### Exclude Fields (Blacklist)
+
+Remove specified fields from output:
+
+```yaml
+response_transformations:
+  - source_field: name
+    target_field: name
+    exclude_fields:
+      - password
+      - internal_id
+      - ssn
+```
+
+**Use Cases:**
+- Remove sensitive data (passwords, tokens, SSNs)
+- Exclude internal fields (IDs, timestamps, metadata)
+- Reduce payload size
+- Enforce API contracts
+
+### Nested Field Filtering
+
+Use dot notation to filter nested fields:
+
+```yaml
+response_transformations:
+  - source_field: user.name
+    target_field: user.name
+    exclude_fields:
+      - user.email
+      - user.profile.settings.theme
+```
+
+### Precedence Rules
+
+When both `include_fields` and `exclude_fields` are specified:
+1. Apply `include_fields` first (whitelist)
+2. Apply `exclude_fields` second (blacklist)
+3. **Exclude takes precedence**
+
+**Example:**
+```yaml
+include_fields: ["name", "email", "password"]
+exclude_fields: ["password"]
+# Result: Only name and email included (password excluded)
+```
+
+### Filtering Order
+
+Filtering happens **after all transformations**:
+
+```yaml
+transformations:
+  - source_field: first_name
+    target_field: full_name
+    transformation: upper
+    exclude_fields:
+      - first_name  # Exclude original, keep transformed
+```
+
+This allows you to:
+1. Transform data
+2. Create new fields
+3. Filter unwanted fields (including originals)
+
+### Filtering Best Practices
+
+**1. Use Exclude for Security**
+```yaml
+# Remove sensitive fields
+exclude_fields:
+  - password
+  - api_key
+  - ssn
+```
+
+**2. Use Include for Strict Contracts**
+```yaml
+# Only return specified fields
+include_fields:
+  - id
+  - name
+  - status
+```
+
+**3. Combine with Transformations**
+```yaml
+- source_field: internal_name
+  target_field: display_name
+  transformation: upper
+  exclude_fields:
+    - internal_name  # Remove original
+```
+
+**4. Filter Nested Structures**
+```yaml
+exclude_fields:
+  - user.credentials
+  - user.profile.internal_notes
+```
+
 ### Boolean Conversion Rules
 
 Values converted to `true`:
