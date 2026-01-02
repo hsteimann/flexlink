@@ -50,83 +50,17 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 
-### Recent Improvements
+### Latest Release
 
-**v0.4.2 - Specialized Connectors & Background Execution** (December 2025)
-- ✅ **Specialized Connector Pattern**: New inheritance-based model that lets connectors declare API-specific behavior without complicating pipelines
-- ✅ **PriceEdgeConnector**: First specialized connector with automatic response unwrapping, body-based pagination, and helper methods like `query_suggested_prices()`
-- ✅ **Background Pipeline Execution**: Async TaskManager, `/runs/{run_id}` polling endpoint, and log streaming prevent long ETL jobs from blocking HTTP workers
-- ✅ **Scheduling & Run History**: APScheduler-backed cron/interval execution with results persisted to SQLite history for audit trails
-- ✅ **Name-First Registry Lookup**: Registry prioritizes connector names (e.g., `priceedge`) before falling back to generic types, keeping everything backwards compatible
-- ✅ **65 Tests**: Connector and background-execution suites expanded (including 6 new PriceEdge tests) to maintain 100% coverage for these features
+**Current Version: v0.4.2** (December 2025)
 
-**v0.4.1 - Web UI Monitoring Dashboard** (December 2025)
-- ✅ **Material Design 3 UI**: Modern web dashboard built with NiceGUI and Material You design system
-- ✅ **Pipeline Monitoring**: View, execute, and monitor pipelines through an intuitive web interface
-- ✅ **Real-time Status**: Live status updates for pipeline executions with auto-refresh
-- ✅ **Execution History**: Browse historical pipeline runs with filtering and pagination
-- ✅ **Run Logs**: View detailed execution logs with timestamp and severity filtering
-- ✅ **Dark/Light Theme**: Automatic theme support with manual toggle
-- ✅ **Responsive Design**: Mobile-friendly interface with Material Design 3 components
-- ✅ **Custom Exceptions**: User-friendly error handling with specific exception types
-- ✅ **57 Tests**: Comprehensive API client tests with 92% coverage on core components
+Key highlights:
+- ✅ **Specialized Connectors**: Inheritance-based connector pattern with PriceEdgeConnector implementation
+- ✅ **Background Execution**: Async pipeline execution with TaskManager and run history tracking
+- ✅ **Web Dashboard**: Material Design 3 UI for pipeline monitoring and management
+- ✅ **Production Ready**: 685 tests (100% pass rate), 71% coverage
 
-**v0.4.0 - Pipeline Orchestration Layer** (December 2025)
-- ✅ **Declarative Pipelines**: Define complete Extract → Transform → Load workflows in YAML configuration
-- ✅ **Multi-Step Execution**: Chain multiple extraction, transformation, and load operations sequentially
-- ✅ **Pagination Support**: Automatic data fetching with offset/limit, cursor, and page-based strategies
-- ✅ **Batch Loading**: Efficient bulk data transfer with configurable batch sizes and partial failure handling
-- ✅ **Retry Logic**: Exponential, linear, and fixed backoff strategies with jitter for failed steps
-- ✅ **Error Handling**: Configurable strategies (fail pipeline, skip step, or continue) per step
-- ✅ **HTTP API**: Execute pipelines via REST endpoints with real-time status and metrics
-- ✅ **328 Tests**: Added 25 new tests for pipeline orchestration (steps, orchestrator, API) - all passing
-
-**v0.3.1 - Webhook Output Connector** (December 2025)
-- ✅ **Webhook Notifications**: New webhook connector sends HTTP POST notifications to external endpoints
-- ✅ **HMAC Signatures**: HMAC-SHA256 signature generation for webhook security and payload verification
-- ✅ **Multiple Auth Methods**: Support for Bearer tokens, API keys, Basic auth, and custom headers
-- ✅ **Smart Retry Logic**: Exponential backoff with jitter for failed deliveries (configurable 1-10 attempts)
-- ✅ **Error Handling**: Distinguishes 4xx (no retry) from 5xx (retry with backoff) responses
-- ✅ **Statistics Tracking**: Monitor delivery success rates, attempt counts, and performance metrics
-- ✅ **303 Tests**: Added 9 comprehensive webhook tests - all passing (100% coverage)
-
-**v0.3.0 - PostgreSQL Database Output Connector** (December 2025)
-- ✅ **Database Persistence**: New PostgreSQL connector writes validated data directly to databases
-- ✅ **Connection Pooling**: Production-ready connection management with configurable pool size (2-10 connections)
-- ✅ **INSERT Operations**: Simplified MVP with INSERT support, parameterized queries for SQL injection protection
-- ✅ **File-to-Database Pipeline**: Parse CSV/JSON/XML files and persist records directly to PostgreSQL
-- ✅ **SSL/TLS Support**: Encrypted database connections with automatic sslmode configuration
-- ✅ **294 Tests**: Added 24 new tests (11 model tests + 13 integration tests) - all passing
-
-**v0.2.3 - Configuration-Driven File Connector** (December 2025)
-- ✅ **Unified Connector Management**: File connector now registered in ConnectorRegistry like REST connectors
-- ✅ **YAML Configuration**: File connector configurable via `config/connectors/file.yaml`
-- ✅ **Consistent Architecture**: All connectors share same lifecycle and can be enabled/disabled via config
-- ✅ **270 Tests**: All existing tests pass with new architecture
-
-**v0.2.2 - File-to-REST Integration** (December 2025)
-- ✅ **File-to-REST Pipeline**: New `/api/v1/files/forward` endpoint bridges file processing with routing/transformation pipeline
-- ✅ **Batch Ingestion Workflows**: Parse files (CSV/JSON/XML) → Apply transformations → Forward to REST APIs
-- ✅ **Dual Forwarding Modes**: Individual (one request per record) or batch (all records in one request)
-- ✅ **Transformation Integration**: File records flow through route-level and connector-level transformations
-- ✅ **270 Tests**: Added 5 comprehensive tests for file-to-REST forwarding with transformations
-
-**v0.2.1 - File Persistence & Async Download** (December 2025)
-- ✅ **Async File Processing**: Upload endpoint now saves processed files for later download (default behavior)
-- ✅ **Download Persistence**: New `GET /api/v1/files/download/{file_id}` endpoint for async file retrieval
-- ✅ **File TTL Management**: Automatic 24-hour retention with cleanup endpoint for expired files
-- ✅ **Flexible Upload Modes**: Choose between async download, validation only, or immediate file return
-- ✅ **265 Tests**: Added 8 new tests for download persistence and cleanup functionality
-
-**v0.2.0 - Architectural Enhancements** (December 2025)
-- ✅ **HTTP Status Code Propagation**: Proper REST semantics with accurate status codes (404, 500, etc.)
-- ✅ **Query Parameter Support**: GET/DELETE requests now properly use query strings instead of JSON bodies
-- ✅ **Connector Transform Hooks**: Connectors can implement custom transformations for system-specific quirks
-- ✅ **File Upload Returns Content**: Upload endpoint can now return processed file content (via `return_file` parameter)
-- ✅ **Multi-Layer Transformations**: Route-level and connector-level transformations work together
-- ✅ **257 Tests**: Comprehensive test coverage for all architectural improvements
-
-See [CHANGELOG.md](./CHANGELOG.md) for detailed version history.
+For detailed version history and all changes, see **[CHANGELOG.md](./docs/CHANGELOG.md)**.
 
 ### Use Cases
 
@@ -474,13 +408,15 @@ pytest src/tests/test_ui/ -v
 
 ## Configuration
 
-FlexLink uses YAML-based configuration for connectors and routes.
+FlexLink uses YAML-based configuration for connectors, routes, and pipelines.
 
-### Connector Configuration
+**Configuration Locations:**
+- **Connectors**: `config/connectors/*.yaml` - Define external system connections
+- **Routes**: `config/routes/*.yaml` - Map API routes to connectors
+- **Pipelines**: `config/pipelines/*.yaml` - Define ETL workflows
+- **Environment**: `.env` - Store secrets and settings
 
-Create connector configurations in `config/connectors/`:
-
-**REST Connector Example:**
+**Quick Example:**
 ```yaml
 # config/connectors/my_api.yaml
 name: my_api
@@ -489,191 +425,19 @@ base_url: https://api.example.com
 auth:
   type: bearer
   credentials:
-    token: ${API_TOKEN}  # Environment variable substitution
-headers:
-  Content-Type: application/json
-timeout: 30
-retry_attempts: 3
+    token: ${API_TOKEN}  # Environment variable
 enabled: true
 ```
 
-**File Connector Example:**
-```yaml
-# config/connectors/file.yaml
-name: file
-type: file
-base_url: ""  # Not used for file connector
-auth:
-  type: none
-  credentials: {}
-enabled: true
+**Available Connector Types:**
+- **REST**: HTTP/HTTPS API integrations
+- **File**: CSV/JSON/XML file processing
+- **PostgreSQL**: Database persistence with connection pooling
+- **Webhook**: HTTP POST notifications with HMAC signatures
 
-# File processing settings (max size, directories, TTL)
-# are controlled via environment variables in .env
-```
-
-**Note**: The file connector is fundamental to FlexLink and is loaded at startup from `config/connectors/file.yaml`. All connectors share the same lifecycle and can be enabled/disabled via the `enabled` flag.
-
-**PostgreSQL Database Connector Example:**
-```yaml
-# config/connectors/postgres.yaml
-name: postgres
-type: postgresql
-base_url: ""  # Not used for database connectors
-
-auth:
-  type: none  # Authentication via connection string
-  credentials: {}
-
-headers:
-  # Database configuration (stored in headers temporarily)
-  connection_string: ${POSTGRES_CONNECTION_STRING}
-  database_type: postgresql
-  table_name: ${POSTGRES_TABLE_NAME}
-  schema_name: public
-
-  # Operation settings
-  default_operation: insert
-  conflict_columns: ["id"]  # For UPSERT (v0.5.0+)
-
-  # Connection pool
-  pool:
-    min_size: 2
-    max_size: 10
-    timeout_seconds: 30.0
-    max_idle_seconds: 300.0
-
-  # Additional settings
-  ssl_enabled: true
-
-timeout: 30
-retry_attempts: 1
-enabled: true
-```
-
-**Database Connector Features** (v0.3.0):
-- ✅ **INSERT Operations**: Write validated data to PostgreSQL databases
-- ✅ **Connection Pooling**: Production-ready connection management (2-10 connections)
-- ✅ **SQL Injection Protection**: Parameterized queries for security
-- ✅ **SSL/TLS Support**: Encrypted database connections
-- ⏳ **UPDATE/UPSERT Operations**: Coming in v0.5.0
-- ⏳ **Batch Processing**: Coming in v0.5.0 with COPY protocol
-
-**Environment Variables for Database Connector:**
-```bash
-POSTGRES_CONNECTION_STRING=postgresql://user:password@localhost:5432/database
-POSTGRES_TABLE_NAME=your_table_name
-```
-
-**Webhook Connector Example:**
-```yaml
-# config/connectors/my_webhook.yaml
-name: my_webhook
-type: webhook
-base_url: ""  # Not used for webhook connector
-
-auth:
-  type: none  # Base connector auth (not used)
-  credentials: {}
-
-# Webhook configuration (stored in headers)
-headers:
-  # Webhook URL
-  webhook_url: ${WEBHOOK_URL}  # e.g., https://hooks.example.com/endpoint
-
-  # Authentication
-  auth_type: bearer  # none, bearer, api_key, basic, hmac_signature
-  auth_credentials:
-    token: ${WEBHOOK_TOKEN}  # For bearer auth
-    # api_key: ${WEBHOOK_API_KEY}  # For api_key auth
-    # header_name: X-API-Key  # For api_key auth
-    # username: ${WEBHOOK_USER}  # For basic auth
-    # password: ${WEBHOOK_PASS}  # For basic auth
-
-  # HMAC Signature (optional)
-  signature_enabled: false
-  signature_secret: ${WEBHOOK_SECRET}  # For HMAC signature
-  signature_header: X-Webhook-Signature
-  timestamp_header: X-Webhook-Timestamp
-
-  # Custom Headers
-  custom_headers:
-    X-App-Version: "1.0.0"
-    X-Environment: "production"
-
-  # Retry Configuration
-  max_retry_attempts: 5
-  retry_backoff_factor: 2.0  # Exponential: 1s, 2s, 4s, 8s, 16s
-  timeout_seconds: 30
-
-timeout: 30
-retry_attempts: 1  # Not used (webhook has own retry logic)
-enabled: true
-```
-
-**Webhook Connector Features** (v0.3.1):
-- ✅ **HTTP POST Notifications**: Send data to webhook endpoints
-- ✅ **Multiple Auth Methods**: Bearer, API Key, Basic, HMAC signature
-- ✅ **HMAC Signatures**: Secure payload verification with timestamp
-- ✅ **Smart Retry Logic**: Exponential backoff with jitter (1-10 attempts)
-- ✅ **Error Handling**: 4xx = no retry, 5xx = retry with backoff
-- ✅ **Statistics Tracking**: Monitor delivery success rates and performance
-
-**Environment Variables for Webhook Connector:**
-```bash
-WEBHOOK_URL=https://hooks.example.com/endpoint
-WEBHOOK_TOKEN=your_webhook_token_here
-WEBHOOK_SECRET=your_signing_secret_here
-```
-
-### Route Configuration
-
-Define routes in `config/routes/`:
-
-```yaml
-# config/routes/my_routes.yaml
-- path: /users/{id}
-  method: GET
-  connector: my_api
-  target_path: /api/v1/users/{id}
-  transformations:
-    - source_field: user.name
-      target_field: userName
-      transformation: upper
-    - source_field: user.email
-      target_field: email
-```
-
-### Environment Variables
-
-Create a `.env` file in the project root (see `.env.example` for template):
-
-```bash
-# Application Settings
-APP_NAME=FlexLink
-DEBUG=false
-LOG_LEVEL=INFO
-
-# File Processing Settings
-MAX_FILE_SIZE_MB=10                    # Maximum file upload size (default: 10MB)
-UPLOAD_DIR=data/uploads                # Directory for uploaded files
-DOWNLOAD_DIR=data/downloads            # Directory for processed/temporary files
-TEMP_FILE_TTL_SECONDS=86400            # File retention period (default: 86400 = 24 hours)
-
-# Configuration Directory
-CONFIG_DIR=config
-
-# API Credentials (referenced in connector configs using ${VAR_NAME} syntax)
-API_TOKEN=your_secret_token_here
-```
-
-**File Processing Configuration:**
-- **MAX_FILE_SIZE_MB**: Controls max upload size for file processing endpoints
-- **DOWNLOAD_DIR**: Where processed files are saved for async download
-- **TEMP_FILE_TTL_SECONDS**: How long files persist before cleanup (configurable per deployment)
-  - Default: 86400 seconds (24 hours)
-  - Cleanup endpoint: `DELETE /api/v1/files/cleanup`
-  - Can be automated via cron for production environments
+For detailed configuration examples and all options, see:
+- **[Connector Examples](./docs/configuration/connector-examples.md)** - REST, File, PostgreSQL, Webhook
+- **[Configuration Overview](./docs/configuration/overview.md)** - Complete reference
 
 ## Pipeline Orchestration
 
@@ -788,445 +552,53 @@ curl -X POST http://localhost:8000/api/v1/pipelines/order-sync/reload
 
 ### Advanced Pipeline Features
 
-**Pagination Strategies:**
+Pipelines support advanced features for production-ready ETL workflows:
 
-```yaml
-# Offset/Limit Pagination
-pagination:
-  enabled: true
-  strategy: offset
-  page_size: 100
-  max_pages: 50
+- **Pagination**: Offset/limit, cursor-based, and page number strategies
+- **Batch Loading**: Group records for efficient bulk operations
+- **Error Handling**: Configurable strategies (fail_pipeline, skip_step, continue)
+- **Retry Logic**: Exponential, linear, and fixed backoff with jitter
 
-# Cursor-based Pagination
-pagination:
-  enabled: true
-  strategy: cursor
-  page_size: 100
-  cursor_param: cursor
-  size_param: limit
-  next_cursor_path: pagination.next_cursor
-  data_path: data
-
-# Page Number Pagination
-pagination:
-  enabled: true
-  strategy: page
-  page_size: 50
-  max_pages: 20
-  page_param: page
-  size_param: per_page
-  start_page: 1
-```
-
-**Batch Loading:**
-
-```yaml
-steps:
-  - name: load_in_batches
-    type: load
-    connector: webhook
-    batch_config:
-      enabled: true
-      batch_size: 50
-      wrapper_key: items  # Wrap batch in {"items": [...]}
-      status_field: status
-      success_values: ["success", "ok", "created"]
-```
-
-**Error Handling:**
-
-```yaml
-steps:
-  - name: critical_step
-    on_error: fail_pipeline  # Stop entire pipeline if this fails
-
-  - name: optional_step
-    on_error: skip_step  # Skip this step and continue
-
-  - name: notification_step
-    on_error: continue  # Log error but continue pipeline
-```
-
-**Retry Strategies:**
-
-```yaml
-retry_policy:
-  max_attempts: 5
-  backoff_strategy: exponential  # or linear, fixed
-  initial_delay_seconds: 1.0
-  backoff_factor: 2.0  # delay doubles each retry
-```
+For detailed configuration and examples, see **[Pipeline Features Guide](./docs/features/pipeline-features.md)**.
 
 ## API Documentation
 
-### REST Integration Endpoints
+FlexLink provides a comprehensive REST API for integration, file processing, and system health monitoring.
 
-#### POST /api/v1/route
+**Quick Reference:**
+- **Server**: `http://localhost:8000` (default)
+- **Interactive Docs**: `http://localhost:8000/api/docs` (Swagger UI)
+- **OpenAPI Spec**: `http://localhost:8000/api/openapi.json`
 
-Route a request through the middleware to a configured connector.
+**Main Endpoint Categories:**
 
-**Request Body:**
-```json
-{
-  "route": "/users/123",
-  "method": "GET",
-  "headers": {
-    "Authorization": "Bearer token"
-  },
-  "query_params": {
-    "include": "profile",
-    "limit": "10"
-  },
-  "body": null
-}
-```
+| Category | Description | Documentation |
+|----------|-------------|---------------|
+| **REST Integration** | Route requests to connectors with transformations | [REST Integration API](./docs/api/rest-integration.md) |
+| **File Processing** | Upload, convert, and forward files | [File Processing API](./docs/api/file-processing.md) |
+| **Health Checks** | Monitor system health and components | [Health Check API](./docs/api/health-checks.md) |
 
-**Key Features:**
-- **HTTP Status Propagation**: Response HTTP status code matches the `status_code` in the JSON body
-  - Success: HTTP 200 with `status_code: 200` in body
-  - Not Found: HTTP 404 with `status_code: 404` in body
-  - Server Error: HTTP 500 with `status_code: 500` in body
-- **Query Parameters**: Properly forwarded to target API
-  - GET/DELETE: Uses query string (e.g., `?include=profile&limit=10`)
-  - POST/PUT/PATCH: Can use both query params and body
-- **Transformation Pipeline**: Applies route and connector transformations automatically
-
-**Response (HTTP 200):**
-```json
-{
-  "status_code": 200,
-  "headers": {},
-  "body": {
-    "id": 123,
-    "userName": "JOHN DOE",
-    "email": "john@example.com"
-  },
-  "error": null
-}
-```
-
-**Response (HTTP 404 - Route Not Found):**
-```json
-{
-  "status_code": 404,
-  "error": "No route configured for: GET /nonexistent"
-}
-```
-
-**Response (HTTP 500 - Connector Error):**
-```json
-{
-  "status_code": 500,
-  "error": "Connector not found: invalid_connector"
-}
-```
-
-#### GET /api/v1/connectors
-
-List all registered connectors.
-
-**Response:**
-```json
-{
-  "connectors": ["my_api", "jsonplaceholder"],
-  "count": 2
-}
-```
-
-#### GET /api/v1/routes
-
-List all configured routes.
-
-**Response:**
-```json
-{
-  "routes": [
-    {
-      "path": "/users/{id}",
-      "method": "GET",
-      "connector": "my_api"
-    }
-  ],
-  "count": 1
-}
-```
-
-### File Processing Endpoints
-
-#### POST /api/v1/files/upload
-
-Upload and process a file with optional format conversion, file persistence, and immediate return.
-
-**Parameters:**
-- `file` (required): File to upload (multipart/form-data)
-- `source_format` (required): Source file format (csv, json, xml)
-- `target_format` (optional): Convert to this format
-- `save_file` (optional, default=true): Save processed file for async download
-- `return_file` (optional, default=false): Return file content immediately
-
-**Example 1: Async upload for later download (default)**
+**Example: Route a Request**
 ```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json" \
-  -F "file=@data.csv"
+curl -X POST "http://localhost:8000/api/v1/route" \
+  -H "Content-Type: application/json" \
+  -d '{"route": "/users/123", "method": "GET"}'
 ```
 
-**Response (JSON):**
-```json
-{
-  "success": true,
-  "records_processed": 100,
-  "output_format": "json",
-  "output_filename": "processed.json",
-  "download_url": "/api/v1/files/download/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "errors": [],
-  "warnings": []
-}
-```
+For complete API reference with request/response examples, see the [API documentation](./docs/api/).
 
-**Example 2: Validation only (no persistence)**
-```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&save_file=false" \
-  -F "file=@data.csv"
-```
+## File Processing & Integration Examples
 
-**Response (JSON):**
-```json
-{
-  "success": true,
-  "records_processed": 100,
-  "output_format": "csv",
-  "output_filename": "processed.csv",
-  "download_url": null,
-  "errors": [],
-  "warnings": []
-}
-```
+FlexLink supports native processing for CSV, JSON, and XML files with multiple integration patterns.
 
-**Example 3: Immediate file return**
-```bash
-curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json&return_file=true" \
-  -F "file=@data.csv" \
-  -o converted.json
-```
-
-**Response:** File content (application/octet-stream) with `Content-Disposition: attachment` header.
-
-**Use Cases:**
-- **Async Processing** (default): Upload → Get download_url → Download later (enables async file pickup)
-- **Validation Only**: Upload with `save_file=false` to validate format and get record count
-- **Immediate Download**: Upload with `return_file=true` to convert and download immediately
-- **ETL Pipeline**: Parse → Transform → Export in one API call
-
-#### GET /api/v1/files/download/{file_id}
-
-Download a previously uploaded and processed file.
-
-**Parameters:**
-- `file_id` (required): UUID from the `download_url` returned by upload endpoint
+**Common Workflows:**
+- **Format Conversion**: CSV ↔ JSON ↔ XML (bidirectional)
+- **Async Processing**: Upload files, download results later
+- **File-to-REST**: Parse files and forward records to REST APIs
+- **File-to-Database**: Parse files and persist records to PostgreSQL
+- **File-to-Webhook**: Parse files and send records as webhook notifications
 
 **Example:**
-```bash
-# Use download_url from upload response
-curl -X GET "http://localhost:8000/api/v1/files/download/a1b2c3d4-e5f6-7890-abcd-ef1234567890" \
-  -o processed.json
-```
-
-**Response:** File content with appropriate Content-Type header (text/csv, application/json, or application/xml).
-
-**Notes:**
-- Files are stored temporarily (default: 24 hours)
-- Returns `404 Not Found` if file doesn't exist or has expired
-- Returns `400 Bad Request` if file_id format is invalid
-
-#### DELETE /api/v1/files/cleanup
-
-Remove expired temporary files (older than 24 hours).
-
-**Example:**
-```bash
-curl -X DELETE "http://localhost:8000/api/v1/files/cleanup"
-```
-
-**Response:**
-```json
-{
-  "deleted_files": 3
-}
-```
-
-**Notes:**
-- This endpoint can be called manually or automated via cron/scheduler
-- Removes files older than `DEFAULT_FILE_TTL_HOURS` (24 hours)
-- Safe to call repeatedly - only deletes expired files
-
-#### POST /api/v1/files/forward
-
-**Parse file and forward records through the routing/transformation pipeline.**
-
-This endpoint bridges file processing with the REST connector pipeline, enabling batch ingestion workflows where file data is parsed, transformed, and forwarded to REST APIs.
-
-**Workflow:**
-1. Parse file into records (CSV/JSON/XML → list of dicts)
-2. For each record (or batch):
-   - Create IntegrationRequest
-   - Route through RequestRouter (applies route-level and connector transformations)
-   - Forward to target REST connector
-3. Aggregate and return results
-
-**Parameters:**
-- `file` (required): File to upload and parse
-- `source_format` (required): Source file format (csv, json, xml)
-- `target_route` (required): Route configured in routing (e.g., "/users")
-- `target_method` (optional, default="POST"): HTTP method (POST, PUT, PATCH)
-- `batch_mode` (optional, default="individual"): Forwarding mode
-  - `individual`: One request per record
-  - `batch`: All records in one request (wrapped in `{"records": [...]}`  object)
-
-**Example 1: Individual mode - POST each record separately**
-```bash
-# Upload CSV and POST each customer to REST API
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/customers&batch_mode=individual" \
-  -F "file=@customers.csv"
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "records_parsed": 100,
-  "records_forwarded": 98,
-  "records_failed": 2,
-  "batch_mode": "individual",
-  "target_route": "/customers",
-  "responses": [
-    {"status_code": 201, "count": 98},
-    {"status_code": 400, "count": 2}
-  ],
-  "errors": [
-    "Record 45 failed with status 400: Invalid email format",
-    "Record 87 failed with status 400: Missing required field"
-  ]
-}
-```
-
-**Example 2: Batch mode - POST all records in one request**
-```bash
-# Upload JSON and send all records in a single batch
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=json&target_route=/batch/import&batch_mode=batch" \
-  -F "file=@products.json"
-```
-
-**Use Cases:**
-- **File-based ETL**: Upload CSV → Transform fields → POST to REST API
-- **Batch Import**: Upload JSON/XML → Route through transformations → Forward to external system
-- **Data Migration**: Parse legacy files → Apply field mapping → Load via REST endpoints
-- **File ↔ REST Bridge**: Connect file-based systems with REST APIs through transformation pipeline
-
-**Integration with Transformations:**
-- File records automatically flow through route-level transformations configured in `config/routes/`
-- Connector-specific transformations are also applied
-- Same transformation pipeline as regular REST requests
-
-**Example with Transformations:**
-```yaml
-# config/routes/example_routes.yaml
-routes:
-  - path: "/users"
-    method: POST
-    connector: my_api
-    target_path: "/api/v1/users"
-    transformations:
-      - source_field: "name"
-        target_field: "full_name"
-        transformation: "upper"
-      - source_field: "email"
-        target_field: "email_address"
-        transformation: "lower"
-```
-
-```bash
-# File records will have transformations applied before forwarding
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/users" \
-  -F "file=@users.csv"
-```
-
-#### POST /api/v1/files/convert
-
-Convert a file from one format to another.
-
-**Request:**
-```bash
-curl -X POST http://localhost:8000/api/v1/files/convert \
-  -F "file=@data.csv" \
-  -F "source_format=csv" \
-  -F "target_format=json" \
-  --output data.json
-```
-
-**Response:** File download with appropriate Content-Type header.
-
-#### GET /api/v1/files/formats
-
-List supported file formats.
-
-**Response:**
-```json
-{
-  "formats": ["csv", "json", "xml"],
-  "conversions": [
-    "csv -> json",
-    "csv -> xml",
-    "json -> csv",
-    "json -> xml",
-    "xml -> csv",
-    "xml -> json"
-  ]
-}
-```
-
-### Health Check Endpoints
-
-#### GET /health
-
-Basic health check.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-12-23T12:00:00.000000"
-}
-```
-
-#### GET /health/detailed
-
-Detailed system information.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-12-23T12:00:00.000000",
-  "system": {
-    "platform": "Linux",
-    "python_version": "3.12.12"
-  },
-  "components": {
-    "api": "healthy",
-    "file_processing": "healthy",
-    "connectors": {
-      "count": 2,
-      "names": ["my_api", "jsonplaceholder"]
-    }
-  }
-}
-```
-
-## File Processing Examples
-
-### CSV to JSON Conversion
-
 ```bash
 # Convert CSV to JSON
 curl -X POST http://localhost:8000/api/v1/files/convert \
@@ -1234,474 +606,25 @@ curl -X POST http://localhost:8000/api/v1/files/convert \
   -F "source_format=csv" \
   -F "target_format=json" \
   --output customers.json
-
-# Input: customers.csv
-# id,name,email,country
-# 1,John Doe,john@example.com,US
-# 2,Jane Smith,jane@example.com,UK
-
-# Output: customers.json
-# [
-#   {"id": 1, "name": "John Doe", "email": "john@example.com", "country": "US"},
-#   {"id": 2, "name": "Jane Smith", "email": "jane@example.com", "country": "UK"}
-# ]
 ```
 
-### XML to CSV Conversion
-
-```bash
-# Convert XML to CSV
-curl -X POST http://localhost:8000/api/v1/files/convert \
-  -F "file=@products.xml" \
-  -F "source_format=xml" \
-  -F "target_format=csv" \
-  --output products.csv
-```
-
-### File Upload with Async Download
-
-```bash
-# Upload file for processing and get download URL
-curl -X POST "http://localhost:8000/api/v1/files/upload?source_format=csv&target_format=json" \
-  -F "file=@customers.csv"
-
-# Response includes download_url:
-# {
-#   "success": true,
-#   "records_processed": 100,
-#   "download_url": "/api/v1/files/download/a1b2c3d4-..."
-# }
-
-# Download the processed file later
-curl -X GET "http://localhost:8000/api/v1/files/download/a1b2c3d4-..." \
-  -o processed.json
-```
-
-### File-to-REST Integration
-
-**Example 1: Upload CSV and POST each record to REST API**
-
-First, configure a route in `config/routes/customers_routes.yaml`:
-```yaml
-routes:
-  - path: "/customers"
-    method: POST
-    connector: my_api
-    target_path: "/api/v1/customers"
-    transformations:
-      - source_field: "name"
-        target_field: "full_name"
-        transformation: "upper"
-      - source_field: "email"
-        target_field: "email_address"
-        transformation: "lower"
-```
-
-Then forward file records through the routing pipeline:
-```bash
-# Upload CSV and forward each customer to REST API (individual mode)
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/customers&batch_mode=individual" \
-  -F "file=@customers.csv"
-
-# Input: customers.csv
-# name,email,country
-# john smith,JOHN@TEST.COM,US
-# jane doe,JANE@TEST.COM,UK
-
-# Each record is transformed and POSTed individually:
-# POST /api/v1/customers {"full_name": "JOHN SMITH", "email_address": "john@test.com", "country": "US"}
-# POST /api/v1/customers {"full_name": "JANE DOE", "email_address": "jane@test.com", "country": "UK"}
-
-# Response:
-# {
-#   "success": true,
-#   "records_parsed": 2,
-#   "records_forwarded": 2,
-#   "records_failed": 0,
-#   "responses": [{"status_code": 201, "count": 2}]
-# }
-```
-
-**Example 2: Batch mode - Send all records in one request**
-
-```bash
-# Upload JSON and forward all records as a batch
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=json&target_route=/batch/import&batch_mode=batch" \
-  -F "file=@products.json"
-
-# All records are sent in a single request:
-# POST /api/batch/import {"records": [{"id": 1, ...}, {"id": 2, ...}, ...]}
-
-# Response:
-# {
-#   "success": true,
-#   "records_parsed": 100,
-#   "records_forwarded": 100,
-#   "records_failed": 0,
-#   "batch_mode": "batch"
-# }
-```
-
-**Example 3: File-based ETL with transformations**
-
-```bash
-# Parse legacy XML → Transform fields → Load to modern REST API
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=xml&target_route=/legacy/migrate" \
-  -F "file=@legacy_data.xml"
-
-# Workflow:
-# 1. Parse XML to records
-# 2. Apply route-level transformations (field mapping, type conversion)
-# 3. Apply connector-specific transformations (system quirks)
-# 4. POST each record to REST API
-# 5. Return aggregated statistics
-```
-
-### Database Output Integration
-
-**Example 1: Persist data to PostgreSQL**
-
-First, ensure your PostgreSQL table exists:
-```sql
-CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL,
-    amount NUMERIC(10, 2) NOT NULL,
-    status VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_order_id ON orders(order_id);
-```
-
-Configure a database route in `config/routes/database_routes.yaml`:
-```yaml
-- path: /data/orders/persist
-  method: POST
-  connector: postgres
-  target_path: ""  # Not used for database connectors
-  transformations:
-    - source_field: order.id
-      target_field: order_id
-      transformation: int
-    - source_field: order.total
-      target_field: amount
-      transformation: float
-    - source_field: order.status
-      target_field: status
-  validation:
-    rules:
-      - field: order_id
-        type: int
-        required: true
-      - field: amount
-        type: float
-        min: 0
-        required: true
-    on_validation_error: fail_pipeline
-  description: Persist order data to PostgreSQL with validation
-```
-
-Write data to database:
-```bash
-# Persist a single order to PostgreSQL
-curl -X POST "http://localhost:8000/api/v1/route" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "route": "/data/orders/persist",
-    "method": "POST",
-    "body": {
-      "order": {
-        "id": 12345,
-        "total": 99.99,
-        "status": "pending"
-      }
-    }
-  }'
-
-# Response (HTTP 200):
-# {
-#   "status_code": 200,
-#   "body": {
-#     "success": true,
-#     "rows_affected": 1,
-#     "duration_ms": 15.3,
-#     "operation": "insert"
-#   }
-# }
-```
-
-**Example 2: File-to-Database Pipeline**
-
-Parse a CSV file and write each record to PostgreSQL:
-```bash
-# Upload CSV and persist each record to database
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/data/orders/persist&batch_mode=individual" \
-  -F "file=@orders.csv"
-
-# Input: orders.csv
-# order_id,amount,status
-# 12345,99.99,pending
-# 12346,149.50,completed
-# 12347,75.00,pending
-
-# Each record is validated, transformed, and inserted:
-# INSERT INTO orders (order_id, amount, status) VALUES (12345, 99.99, 'pending')
-# INSERT INTO orders (order_id, amount, status) VALUES (12346, 149.50, 'completed')
-# INSERT INTO orders (order_id, amount, status) VALUES (12347, 75.00, 'pending')
-
-# Response:
-# {
-#   "success": true,
-#   "records_parsed": 3,
-#   "records_forwarded": 3,
-#   "records_failed": 0,
-#   "responses": [{"status_code": 200, "count": 3}]
-# }
-```
-
-**Database Connector Performance:**
-- **Single INSERT**: ~10-20ms latency
-- **Connection Pool**: Handles 50+ concurrent requests efficiently
-- **Throughput**: ~100 writes/second (simplified version)
-- **Future**: ~1000+ writes/second with batch COPY protocol (v0.5.0+)
-
-**Error Handling:**
-```bash
-# Duplicate key violation (unique constraint)
-# Response (HTTP 500):
-# {
-#   "status_code": 500,
-#   "error": "Duplicate key violation: Key (order_id)=(12345) already exists.",
-#   "body": {"duration_ms": 8.5}
-# }
-
-# Connection failure
-# Response (HTTP 500):
-# {
-#   "status_code": 500,
-#   "error": "Database write failed: could not connect to server",
-#   "body": {"duration_ms": 30000.0}
-# }
-```
-
-**Security Best Practices:**
-- ✅ Store connection strings in environment variables (never hardcode)
-- ✅ Use SSL/TLS for database connections (`sslmode=require`)
-- ✅ Create dedicated database user with minimum required permissions:
-  ```sql
-  CREATE USER flexlink_app WITH PASSWORD 'strong_password';
-  GRANT CONNECT ON DATABASE flexlink_db TO flexlink_app;
-  GRANT USAGE ON SCHEMA public TO flexlink_app;
-  GRANT INSERT ON TABLE orders TO flexlink_app;
-  ```
-- ✅ All queries use parameterized statements (SQL injection protection)
-
-### Webhook Output Integration
-
-**Example 1: Send event notifications to webhook endpoint**
-
-First, configure a webhook route in `config/routes/webhook_routes.yaml`:
-```yaml
-- path: /events/order-created
-  method: POST
-  connector: my_webhook
-  target_path: ""  # Not used for webhook connectors
-  transformations:
-    - source_field: order.id
-      target_field: orderId
-      transformation: int
-    - source_field: order.customer.name
-      target_field: customerName
-      transformation: upper
-    - source_field: order.total
-      target_field: amount
-      transformation: float
-  description: Send order creation events to webhook
-```
-
-Send event notification:
-```bash
-# Send order creation event to webhook
-curl -X POST "http://localhost:8000/api/v1/route" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "route": "/events/order-created",
-    "method": "POST",
-    "body": {
-      "order": {
-        "id": 12345,
-        "customer": {
-          "name": "john doe"
-        },
-        "total": 99.99,
-        "timestamp": "2024-12-26T10:00:00Z"
-      }
-    }
-  }'
-
-# Response (HTTP 200):
-# {
-#   "status_code": 200,
-#   "body": {
-#     "success": true,
-#     "attempts": 1,
-#     "duration_ms": 45.2,
-#     "response": {"status": "received"}
-#   }
-# }
-```
-
-**Example 2: Webhook with HMAC signature verification**
-
-Configure webhook with signature enabled:
-```yaml
-# config/connectors/secure_webhook.yaml
-name: secure_webhook
-type: webhook
-headers:
-  webhook_url: ${WEBHOOK_URL}
-  auth_type: bearer
-  auth_credentials:
-    token: ${WEBHOOK_TOKEN}
-  signature_enabled: true
-  signature_secret: ${WEBHOOK_SECRET}
-  signature_header: X-Webhook-Signature
-  timestamp_header: X-Webhook-Timestamp
-  max_retry_attempts: 5
-  retry_backoff_factor: 2.0
-enabled: true
-```
-
-The webhook connector automatically:
-- Generates HMAC-SHA256 signature: `hmac(secret, timestamp + "." + json_payload)`
-- Adds signature to `X-Webhook-Signature` header
-- Adds Unix timestamp to `X-Webhook-Timestamp` header
-- Includes Bearer token in `Authorization` header
-
-**Example 3: File-to-Webhook Pipeline**
-
-Parse CSV file and send each record as webhook notification:
-```bash
-# Upload CSV and send each record to webhook endpoint
-curl -X POST "http://localhost:8000/api/v1/files/forward?source_format=csv&target_route=/events/order-created&batch_mode=individual" \
-  -F "file=@orders.csv"
-
-# Input: orders.csv
-# order_id,customer_name,amount
-# 12345,John Doe,99.99
-# 12346,Jane Smith,149.50
-# 12347,Bob Wilson,75.00
-
-# Each record is transformed and sent to webhook:
-# POST https://hooks.example.com/endpoint
-# Headers: Authorization: Bearer xxx, X-Webhook-Signature: abc123..., X-Webhook-Timestamp: 1234567890
-# Body: {"orderId": 12345, "customerName": "JOHN DOE", "amount": 99.99}
-
-# Response:
-# {
-#   "success": true,
-#   "records_parsed": 3,
-#   "records_forwarded": 3,
-#   "records_failed": 0,
-#   "responses": [{"status_code": 200, "count": 3}]
-# }
-```
-
-**Webhook Connector Performance:**
-- **Single Delivery**: ~50-100ms latency (depends on webhook endpoint)
-- **Retry Logic**: Exponential backoff (1s → 2s → 4s → 8s → 16s with jitter)
-- **Throughput**: ~20-30 webhooks/second
-- **Concurrent**: Handles multiple webhook deliveries in parallel
-
-**Error Handling:**
-```bash
-# 4xx Client Error (no retry)
-# Response (HTTP 400):
-# {
-#   "status_code": 400,
-#   "error": "Webhook rejected (HTTP 400): Invalid payload format",
-#   "body": {"attempts": 1, "duration_ms": 42.3}
-# }
-
-# 5xx Server Error (with retry)
-# Response (HTTP 200 after retries):
-# {
-#   "status_code": 200,
-#   "body": {
-#     "success": true,
-#     "attempts": 3,  # Retried 3 times before success
-#     "duration_ms": 8245.7
-#   }
-# }
-
-# Timeout (with retry)
-# Response (HTTP 500):
-# {
-#   "status_code": 500,
-#   "error": "Failed after 5 attempts: Timeout after 30s",
-#   "body": {"attempts": 5, "duration_ms": 150000.0}
-# }
-```
-
-**Security Best Practices:**
-- ✅ Always enable HMAC signatures for webhook security
-- ✅ Store webhook secrets in environment variables (never hardcode)
-- ✅ Use HTTPS URLs for webhook endpoints
-- ✅ Implement signature verification on the receiving end:
-  ```python
-  import hmac
-  import hashlib
-
-  def verify_webhook_signature(payload, timestamp, signature, secret):
-      message = f"{timestamp}.{payload}"
-      expected = hmac.new(
-          secret.encode('utf-8'),
-          message.encode('utf-8'),
-          hashlib.sha256
-      ).hexdigest()
-      return hmac.compare_digest(expected, signature)
-  ```
-- ✅ Validate timestamp to prevent replay attacks (reject if >5 minutes old)
-- ✅ Monitor delivery statistics to detect issues early
-
-### Supported Format Conversions
-
-All conversion paths are supported:
-
-- **CSV ↔ JSON**: Bidirectional conversion
-- **CSV ↔ XML**: Bidirectional conversion
-- **JSON ↔ XML**: Bidirectional conversion
+For comprehensive examples, see:
+- **[File Processing Guide](./docs/how-to/file-processing.md)** - Format conversion, async processing, file-to-REST integration
+- **[Database Integration Examples](./docs/features/connectors/database-examples.md)** - PostgreSQL persistence, file-to-database pipelines
+- **[Webhook Integration Examples](./docs/features/connectors/webhook-examples.md)** - Event notifications, HMAC signatures, file-to-webhook pipelines
 
 ## Data Transformation
 
-FlexLink supports powerful data transformations:
+FlexLink provides declarative data transformations for modifying data as it flows through the platform.
 
-### Field Mapping
+**Transformation Types:**
+- **Field Mapping**: Map source fields to target fields with dot notation
+- **Type Conversions**: Convert between types (upper, lower, int, float, bool, str, etc.)
+- **Request Transformations**: Transform data before sending to connector
+- **Response Transformations**: Transform data returned from connector
+- **YAML Mappings**: Reusable transformation and validation configurations
 
-```yaml
-transformations:
-  - source_field: user.profile.fullName
-    target_field: userName
-  - source_field: user.contact.emailAddress
-    target_field: email
-```
-
-### Type Transformations
-
-Supported transformation types:
-
-- `upper`: Convert to uppercase
-- `lower`: Convert to lowercase
-- `strip`: Remove leading/trailing whitespace
-- `int`: Convert to integer
-- `float`: Convert to float
-- `bool`: Convert to boolean
-- `str`: Convert to string
-- `date_format`: Format date strings
-
-### Example Transformation
-
+**Quick Example:**
 ```yaml
 transformations:
   - source_field: name
@@ -1710,317 +633,28 @@ transformations:
   - source_field: price
     target_field: amount
     transformation: float
-  - source_field: isActive
-    target_field: active
-    transformation: bool
-    default_value: "true"
 ```
 
-### Response Transformations
+**Features:**
+- Nested field access with dot notation
+- Type-safe conversions
+- Default values
+- List transformations
+- Data validation with custom error messages
 
-FlexLink can transform API responses before returning them to clients. This is useful for:
-- Extracting nested data structures
-- Renaming fields to match your naming conventions
-- Converting data types
-- Flattening complex responses
+For comprehensive guide with examples, validation rules, and best practices, see **[Transformation Guide](./docs/features/transformations.md)**.
 
-#### Configuration
+## Connector Development
 
-Add `response_transformations` to your route configuration:
+FlexLink's connector system is extensible, allowing you to create custom connectors for new systems and APIs.
 
-```yaml
-# config/routes/example.yaml
-- path: /api/users
-  connector: my_api
-  target_path: /users
-  transformations: []  # Request transformations
-  response_transformations:  # Response transformations (NEW)
-    # Extract nested user data
-    - source_field: data.users
-      target_field: users
+**Quick Start:**
+1. Create a connector class inheriting from `BaseConnector`
+2. Implement required methods (`send_request`, `close`)
+3. Create YAML configuration in `config/connectors/`
+4. Connector is automatically loaded at startup
 
-    # Rename fields
-    - source_field: users.firstName
-      target_field: users.first_name
-
-    # Convert types
-    - source_field: users.age
-      target_field: users.age
-      transformation: int
-```
-
-#### Supported Transformations
-
-- `upper` - Convert string to uppercase
-- `lower` - Convert string to lowercase
-- `strip` - Remove leading/trailing whitespace
-- `int` - Convert to integer
-- `float` - Convert to float
-- `bool` - Convert to boolean
-- `date_format` - Format date string
-- `str` - Convert to string
-
-#### Nested Field Access
-
-Use dot notation to access nested fields:
-
-```yaml
-response_transformations:
-  - source_field: response.data.items
-    target_field: items
-
-  - source_field: response.metadata.count
-    target_field: total
-```
-
-#### List Responses
-
-When the response is a list of objects, transformations are automatically applied to each item:
-
-```yaml
-# Response: [{"firstName": "John"}, {"firstName": "Jane"}]
-response_transformations:
-  - source_field: firstName
-    target_field: first_name
-
-# Result: [{"firstName": "John", "first_name": "John"}, {"firstName": "Jane", "first_name": "Jane"}]
-```
-
-**Note**: Transformations are **additive** - original fields are preserved alongside transformed fields.
-
-#### Error Handling
-
-If a response transformation fails, the original response is returned and an error is logged. This ensures that transformation errors don't break the integration.
-
-#### Example: PriceEdge Response Transformation
-
-```yaml
-# config/routes/priceedge_routes.yaml
-- path: /pricing/suggested-prices
-  method: POST
-  connector: priceedge
-  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
-  transformations: []
-  response_transformations:
-    # Extract nested data array to top-level "items"
-    - source_field: Data.data
-      target_field: items
-    # Flatten total count
-    - source_field: Data.total
-      target_field: totalItems
-```
-
-**Before transformation:**
-```json
-{
-  "Data": {
-    "data": [
-      {"cd_ItemNumber": "ITEM001", "Value": 19.99},
-      {"cd_ItemNumber": "ITEM002", "Value": 29.99}
-    ],
-    "total": 2
-  }
-}
-```
-
-**After transformation:**
-```json
-{
-  "Data": {
-    "data": [...],
-    "total": 2
-  },
-  "items": [
-    {"cd_ItemNumber": "ITEM001", "Value": 19.99},
-    {"cd_ItemNumber": "ITEM002", "Value": 29.99}
-  ],
-  "totalItems": 2
-}
-```
-
-## YAML Mapping Configurations
-
-FlexLink supports declarative mapping configurations that separate transformation logic from route definitions.
-
-### Why YAML Mappings?
-
-- **Reusability**: Define transformations once, use in multiple routes
-- **Maintainability**: Change mappings without editing route configs
-- **Validation**: Enforce data quality before output
-- **Clarity**: Clear separation between routing (flow) and transformation (data)
-
-### Creating a Mapping Configuration
-
-Create mapping files in `config/mappings/`:
-
-```yaml
-# config/mappings/priceedge-standard.yaml
-name: priceedge-standard
-description: Standard mapping for PriceEdge suggested prices
-
-mappings:
-  # Extract nested data
-  - source_field: Data.data
-    target_field: items
-
-  # Transform field types
-  - source_field: Data.total
-    target_field: totalItems
-    transformation: int
-
-  - source_field: Data.page
-    target_field: currentPage
-    transformation: int
-
-# Data validation rules
-validation:
-  rules:
-    - field: items
-      required: true
-
-    - field: totalItems
-      type: int
-      min: 0
-      required: true
-
-    - field: currentPage
-      type: int
-      min: 1
-
-  on_validation_error: log_and_continue
-  log_errors: true
-```
-
-### Using Mappings in Routes
-
-Reference mappings in route configurations:
-
-```yaml
-# config/routes/priceedge_routes.yaml
-- path: /pricing/suggested-prices
-  method: POST
-  connector: priceedge
-  target_path: /api/tables/Item_PriceList_SuggestedPrices_Suggested_Price
-  mapping_ref: priceedge-standard  # Reference to mapping config
-```
-
-### Validation Rules
-
-Supported validation types:
-
-| Validation | Description | Example |
-|------------|-------------|---------|
-| **Type** | Check field type | `type: int`, `type: string`, `type: date` |
-| **Range** | Validate numeric ranges | `min: 0`, `max: 999999` |
-| **Pattern** | Regex pattern matching | `pattern: "^[A-Z0-9-]+$"` |
-| **Required** | Require field presence | `required: true` |
-
-### Error Handling Strategies
-
-Configure how validation errors are handled:
-
-```yaml
-validation:
-  on_validation_error: fail_pipeline  # or skip_row, log_and_continue
-  log_errors: true
-```
-
-| Strategy | Behavior | Use Case |
-|----------|----------|----------|
-| **fail_pipeline** | Stop processing, return 400 error | Critical data - reject bad data |
-| **skip_row** | Skip invalid records, continue | Batch imports - process valid data |
-| **log_and_continue** | Log warning, don't fail | Monitoring - track issues |
-
-### Validation Example
-
-```yaml
-# config/mappings/product-import.yaml
-name: product-import
-description: Validate product data before database insert
-
-validation:
-  rules:
-    # SKU must be alphanumeric with hyphens
-    - field: sku
-      type: string
-      pattern: "^[A-Z0-9-]+$"
-      required: true
-      error_message: "SKU must be uppercase alphanumeric with hyphens"
-
-    # Price must be positive
-    - field: price
-      type: float
-      min: 0.01
-      max: 999999.99
-      required: true
-      error_message: "Price must be between $0.01 and $999,999.99"
-
-    # Quantity must be non-negative integer
-    - field: quantity
-      type: int
-      min: 0
-      required: true
-
-  on_validation_error: fail_pipeline
-  log_errors: true
-```
-
-## Connector Development Guide
-
-### Creating a Custom Connector
-
-1. **Create connector class** inheriting from `BaseConnector`:
-
-```python
-# src/flexlink/connectors/my_connector.py
-from flexlink.core.connector import BaseConnector
-from flexlink.models.request import IntegrationRequest, IntegrationResponse
-
-class MyConnector(BaseConnector):
-    def __init__(self, config):
-        super().__init__(config)
-        # Initialize connector-specific resources
-
-    async def send_request(
-        self,
-        request: IntegrationRequest
-    ) -> IntegrationResponse:
-        # Implement request sending logic
-        pass
-
-    async def close(self):
-        # Cleanup resources
-        pass
-```
-
-2. **Create configuration file**:
-
-```yaml
-# config/connectors/my_connector.yaml
-name: my_connector
-type: custom
-base_url: https://api.myservice.com
-auth:
-  type: api_key
-  credentials:
-    key_name: X-API-Key
-    key_value: ${MY_API_KEY}
-enabled: true
-```
-
-3. **Register connector** (automatically loaded from `config/connectors/`)
-
-### Connector Methods
-
-All connectors must implement:
-
-- `send_request(request)`: Send request to target system
-- `close()`: Cleanup resources (connections, clients, etc.)
-
-Optional methods:
-
-- `transform_request(data)`: Transform request before sending
-- `transform_response(data)`: Transform response before returning
+For comprehensive guide with examples, see **[Connector Development Guide](./docs/guides/connector-development.md)**.
 
 ## Testing
 
@@ -2148,95 +782,19 @@ For production deployments:
 
 ## Troubleshooting
 
-### Common Issues
+**Common Issues:**
+- Port already in use → Use different port: `uvicorn flexlink.main:app --port 8001`
+- Module import errors → Install in editable mode: `pip install -e .`
+- File upload size limit → Increase `MAX_FILE_SIZE_MB` in `.env`
+- Connector not found → Check config file exists and `enabled: true`
+- Authentication failures → Verify credentials in `.env` file
 
-#### 1. Port Already in Use
-
+**Debug Mode:**
 ```bash
-# Error: Address already in use
-# Solution: Use different port
-uvicorn flexlink.main:app --port 8001
-```
-
-#### 2. Module Import Errors
-
-```bash
-# Error: ModuleNotFoundError: No module named 'flexlink'
-# Solution: Install in editable mode
-pip install -e .
-```
-
-#### 3. File Upload Size Limit
-
-```bash
-# Error: File size exceeds maximum
-# Solution: Increase MAX_FILE_SIZE_MB in .env
-MAX_FILE_SIZE_MB=50
-```
-
-#### 4. Connector Not Found
-
-```bash
-# Error: Connector 'my_api' not found
-# Solution: Check connector config file exists and is valid
-ls config/connectors/my_api.yaml
-```
-
-#### 5. Authentication Failures
-
-```bash
-# Error: 401 Unauthorized
-# Solution: Verify credentials in .env file
-# - Check token format (Bearer prefix if needed)
-# - Verify environment variable substitution working
-# - Test credentials directly against target API
-```
-
-### Debug Mode
-
-Enable debug logging:
-
-```bash
-# In .env file
-DEBUG=true
-LOG_LEVEL=DEBUG
-
-# Or via environment variable
 DEBUG=true LOG_LEVEL=DEBUG uvicorn flexlink.main:app
 ```
 
-### Health Check Failures
-
-If health checks fail in Docker:
-
-```bash
-# Check container logs
-docker logs flexlink
-
-# Check health status
-docker inspect --format='{{json .State.Health}}' flexlink | jq
-
-# Manually test health endpoint
-docker exec flexlink curl http://localhost:8000/api/health
-```
-
-### Performance Issues
-
-For slow file processing:
-
-1. Check file size (limit is 10MB by default)
-2. Monitor memory usage: `docker stats flexlink`
-3. Increase worker count: `--workers 4`
-4. Use streaming for large files (Phase 2 feature)
-
-### Database Connection Issues
-
-For future state persistence features:
-
-1. Verify database credentials
-2. Check network connectivity
-3. Ensure database migrations are applied
-4. Review connection pool settings
+For comprehensive troubleshooting guide covering installation, configuration, connectors, Docker, and performance issues, see **[TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)**.
 
 ## Development
 
@@ -2297,35 +855,25 @@ pytest src/tests/ -v
 
 ## Roadmap
 
-### Current Version (v0.4.2)
+**What's Next for FlexLink?**
 
-- ✅ Pipeline orchestration (Extract → Transform → Load workflows) with per-step error handling
-- ✅ Specialized connector architecture plus the `PriceEdgeConnector` for automatic unwrapping/pagination
-- ✅ REST, webhook, PostgreSQL, and file connectors with authentication, batching, and validation hooks
-- ✅ Background pipeline execution with `/runs/{run_id}` polling, log streaming, and SQLite-backed run history
-- ✅ Cron/interval scheduling powered by APScheduler with automatic history logging
-- ✅ File-to-REST and File-to-Database pipelines, transformation engine, and declarative mappings
-- ✅ Docker deployment, request routing with parameters, and a comprehensive automated test suite
+We're continuously evolving FlexLink to meet enterprise integration needs. Here's a glimpse of what's coming:
 
-### Next Major Release (v0.5.0 - In Planning)
+**v0.5.0 - In Planning:**
+- 🚀 **Message Queue Connectors**: RabbitMQ, Kafka, SQS for event streaming
+- 🎯 **Advanced Data Mapping**: JSONata expressions, custom Python modules
+- 📊 **Enhanced Observability**: Prometheus metrics, OpenTelemetry tracing
+- ⚡ **Performance Boost**: Large file streaming, batch COPY protocol for databases
+- 🔒 **Circuit Breakers**: Protect against cascading failures
+- 🌐 **GraphQL & gRPC Connectors**: Expand beyond REST APIs
 
-Scope is being redefined. See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](./PRPs/active/flexlink-middleware-mvp-PHASE2.md) for the evolving plan, which currently targets:
-
-- Message queue connectors (RabbitMQ, Kafka) for event streaming
-- Advanced data mapping (JSONata expressions)
-- Streaming support for very large files (>10MB) and expanded file formats
-- Additional connector types (GraphQL, SOAP, gRPC, WebSocket)
-- Enhanced observability (OpenTelemetry, Prometheus) with dashboards/metrics
-- Circuit breaker patterns, caching, and API rate limiting
-
-### Enterprise Features
-
-See [PRPs/flexlink-middleware-mvp-ENHANCEMENTS.md](./PRPs/flexlink-middleware-mvp-ENHANCEMENTS.md):
-
-- Job scheduling (cron-based)
-- State persistence (SQLite/PostgreSQL)
-- Audit logging
+**Future (v0.6.0+ / Enterprise Track):**
+- Distributed pipeline execution
 - Multi-tenancy support
+- Advanced audit logging
+- Admin UI enhancements
+
+For the complete roadmap, feature timeline, and detailed planning, see **[docs/roadmap.md](./docs/roadmap.md)**.
 
 ## Contributing
 
