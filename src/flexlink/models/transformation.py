@@ -18,6 +18,12 @@ class TransformationRule(BaseModel):
         description="Default value if source field is missing"
     )
 
+    # JSONata expression for complex transformations
+    expression: str | None = Field(
+        default=None,
+        description="JSONata expression for complex transformations. Takes precedence over 'transformation' if both specified."
+    )
+
     # Field filtering
     include_fields: list[str] | None = Field(
         default=None,

@@ -6,7 +6,19 @@ from typing import Any
 
 from flexlink.models.transformation import TransformationRule
 
+# JSONata support (optional dependency)
+try:
+    import jsonata  # type: ignore[import-not-found]
+
+    JSONATA_AVAILABLE = True
+except ImportError:
+    JSONATA_AVAILABLE = False
+    jsonata = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
+
+# Expression cache (avoid recompiling same expressions)
+_expression_cache: dict[str, Any] = {}  # Maps expression string to compiled Jsonata object
 
 
 class TransformationEngine:
@@ -99,6 +111,30 @@ class TransformationEngine:
         Returns:
             Transformed data dictionary
         """
+        # Check if expression is specified
+        if rule.expression:
+            # Expression takes precedence over transformation
+            if rule.transformation:
+                logger.warning(
+                    f"Both 'expression' and 'transformation' specified for "
+                    f"{rule.source_field} -> {rule.target_field}. "
+                    f"Using expression, ignoring transformation '{rule.transformation}'."
+                )
+
+            # Evaluate expression against full data context
+            try:
+                target_value = self._evaluate_expression(rule.expression, data)
+            except Exception as e:
+                logger.error(f"Failed to evaluate expression for {rule.target_field}: {e}")
+                raise ValueError(f"Expression evaluation failed for {rule.target_field}: {e}") from e
+
+            # Set result
+            if target_value is not None:
+                self._set_nested_value(data, rule.target_field, target_value)
+
+            return data
+
+        # Original field mapping logic
         # Get source value (supports dot notation)
         source_value = self._get_nested_value(data, rule.source_field)
 
@@ -226,6 +262,70 @@ class TransformationEngine:
         except Exception as e:
             raise ValueError(
                 f"Failed to apply transformation '{transformation}' to value '{value}': {e}"
+            ) from e
+
+    def _compile_expression(self, expression: str) -> Any:
+        """
+        Compile JSONata expression with caching.
+
+        Args:
+            expression: JSONata expression string
+
+        Returns:
+            Compiled Jsonata object
+
+        Raises:
+            ImportError: If jsonata-python not installed
+            ValueError: If expression syntax is invalid
+        """
+        if not JSONATA_AVAILABLE or jsonata is None:
+            raise ImportError(
+                "jsonata-python library not installed. "
+                "Install with: pip install jsonata-python"
+            )
+
+        # Check cache first
+        if expression in _expression_cache:
+            logger.debug(f"Using cached JSONata expression: {expression[:50]}...")
+            return _expression_cache[expression]
+
+        # Compile and cache
+        try:
+            compiled = jsonata.Jsonata(expression)  # type: ignore[union-attr]
+            _expression_cache[expression] = compiled
+            logger.debug(f"Compiled JSONata expression: {expression[:50]}...")
+            return compiled
+        except Exception as e:
+            raise ValueError(
+                f"Invalid JSONata expression: {expression[:100]}... Error: {e}"
+            ) from e
+
+    def _evaluate_expression(self, expression: str, data: dict[str, Any]) -> Any:
+        """
+        Evaluate JSONata expression against data.
+
+        Args:
+            expression: JSONata expression string
+            data: Full data context (not just source field value)
+
+        Returns:
+            Expression evaluation result
+
+        Raises:
+            ValueError: If expression evaluation fails
+        """
+        try:
+            compiled = self._compile_expression(expression)
+            result = compiled.evaluate(data)
+            logger.debug(f"Evaluated expression: {expression[:50]}... -> {str(result)[:50]}...")
+            return result
+        except ValueError:
+            # Re-raise compilation errors
+            raise
+        except Exception as e:
+            raise ValueError(
+                f"Failed to evaluate JSONata expression: {expression[:100]}... "
+                f"against data. Error: {e}"
             ) from e
 
     def _filter_fields(

@@ -540,3 +540,181 @@ async def test_response_filtering_with_transformation(mock_registry):
     assert response.body["sale_price"] == 9.99
     assert "internal_code" not in response.body  # Excluded
     assert "cost_price" not in response.body  # Excluded
+
+
+@pytest.mark.asyncio
+async def test_response_transformation_with_jsonata_expression(mock_registry):
+    """Test response transformation using JSONata expression."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="user",  # Ignored
+                target_field="fullName",
+                expression='$uppercase(firstName & " " & lastName)',
+            )
+        ],
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={"firstName": "john", "lastName": "doe", "email": "john@example.com"},
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["fullName"] == "JOHN DOE"
+    assert response.body["firstName"] == "john"  # Original preserved
+
+
+@pytest.mark.asyncio
+async def test_response_transformation_jsonata_array_aggregation(mock_registry):
+    """Test JSONata array aggregation in response."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/orders",
+        connector="test",
+        target_path="/orders",
+        response_transformations=[
+            TransformationRule(
+                source_field="items",
+                target_field="totalAmount",
+                expression="$sum(items.amount)",
+            ),
+            TransformationRule(
+                source_field="items",
+                target_field="itemCount",
+                expression="$count(items)",
+            ),
+        ],
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200, body={"items": [{"amount": 100}, {"amount": 200}, {"amount": 150}]}
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/orders", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["totalAmount"] == 450
+    assert response.body["itemCount"] == 3
+
+
+@pytest.mark.asyncio
+async def test_response_transformation_jsonata_with_filtering(mock_registry):
+    """Test JSONata combined with field filtering."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/products",
+        connector="test",
+        target_path="/products",
+        response_transformations=[
+            TransformationRule(
+                source_field="product",
+                target_field="summary",
+                expression='{"name": $uppercase(name), "price": price}',
+                exclude_fields=["internal_id", "cost"],
+            )
+        ],
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body={"name": "widget", "price": 99.99, "internal_id": 12345, "cost": 50.00},
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/products", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert response.body["summary"]["name"] == "WIDGET"
+    assert response.body["summary"]["price"] == 99.99
+    assert "internal_id" not in response.body
+    assert "cost" not in response.body
+
+
+@pytest.mark.asyncio
+async def test_response_transformation_jsonata_list_response(mock_registry):
+    """Test JSONata on list responses."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/users",
+        connector="test",
+        target_path="/users",
+        response_transformations=[
+            TransformationRule(
+                source_field="firstName",  # Applied to each item
+                target_field="fullName",
+                expression='$uppercase(firstName & " " & lastName)',
+            )
+        ],
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200,
+        body=[
+            {"firstName": "john", "lastName": "doe"},
+            {"firstName": "jane", "lastName": "smith"},
+        ],
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/users", method="POST", body={})
+    response = await router.route_request(request)
+
+    assert response.status_code == 200
+    assert len(response.body) == 2
+    assert response.body[0]["fullName"] == "JOHN DOE"
+    assert response.body[1]["fullName"] == "JANE SMITH"
+
+
+@pytest.mark.asyncio
+async def test_response_transformation_jsonata_error_handling(mock_registry):
+    """Test error handling for invalid JSONata expressions."""
+    registry, mock_connector = mock_registry
+
+    route_config = RouteConfig(
+        path="/api/test",
+        connector="test",
+        target_path="/test",
+        response_transformations=[
+            TransformationRule(
+                source_field="value",
+                target_field="result",
+                expression="invalid {{ expression",  # Invalid syntax
+            )
+        ],
+    )
+
+    mock_connector.send_request.return_value = IntegrationResponse(
+        status_code=200, body={"value": 123}
+    )
+
+    router = RequestRouter(registry)
+    router.add_route(route_config)
+    request = IntegrationRequest(route="/api/test", method="POST", body={})
+
+    # Router catches transformation errors and logs them, but returns original response
+    # (This is good production behavior - don't break requests due to transformation errors)
+    response = await router.route_request(request)
+
+    # Should return original response when transformation fails
+    assert response.status_code == 200
+    assert response.body == {"value": 123}  # Original body preserved

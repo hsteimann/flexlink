@@ -642,8 +642,9 @@ transformations:
 - List transformations
 - Data validation with custom error messages
 - **Field filtering** (include/exclude fields)
+- **JSONata expressions** for complex transformations
 
-**Example with Filtering:**
+**Example with Field Filtering:**
 ```yaml
 response_transformations:
   - source_field: name
@@ -651,6 +652,20 @@ response_transformations:
     exclude_fields:
       - password
       - internal_id
+```
+
+**Example with JSONata:**
+```yaml
+response_transformations:
+  # Create summary with aggregations
+  - source_field: order
+    target_field: summary
+    expression: |
+      {
+        "fullName": $uppercase(firstName & " " & lastName),
+        "total": $sum(items.price * items.quantity),
+        "itemCount": $count(items)
+      }
 ```
 
 For comprehensive guide with examples, validation rules, and best practices, see **[Transformation Guide](./docs/features/transformations.md)**.

@@ -258,6 +258,232 @@ Values converted to `false`:
 - Booleans: `false`
 - None/null values
 
+## JSONata Expressions
+
+FlexLink supports JSONata expressions for complex data transformations beyond simple field mapping and type conversions.
+
+### What is JSONata?
+
+JSONata is a powerful query and transformation language for JSON data that provides:
+- Array operations (map, filter, reduce, aggregations)
+- String manipulation functions
+- Mathematical operations
+- Conditional logic
+- Object construction and restructuring
+
+**Resources:**
+- Official Documentation: https://docs.jsonata.org/
+- Interactive Playground: https://try.jsonata.org/
+- Python Library: https://github.com/rayokota/jsonata-python
+
+### Basic Usage
+
+Add an `expression` field to any transformation rule:
+
+```yaml
+response_transformations:
+  - source_field: user  # Ignored when expression is used
+    target_field: displayName
+    expression: '$uppercase(firstName & " " & lastName)'
+```
+
+**Input:**
+```json
+{
+  "firstName": "john",
+  "lastName": "doe"
+}
+```
+
+**Output:**
+```json
+{
+  "firstName": "john",
+  "lastName": "doe",
+  "displayName": "JOHN DOE"
+}
+```
+
+### Array Operations
+
+**Sum Aggregation:**
+```yaml
+- source_field: items
+  target_field: total
+  expression: '$sum(items.price)'
+```
+
+**Filter Array:**
+```yaml
+- source_field: products
+  target_field: expensive
+  expression: '$filter(products, function($p) { $p.price > 100 })'
+```
+
+**Map Array:**
+```yaml
+- source_field: items
+  target_field: prices
+  expression: 'items.price'
+```
+
+**Count Items:**
+```yaml
+- source_field: items
+  target_field: count
+  expression: '$count(items)'
+```
+
+### Conditional Logic
+
+```yaml
+- source_field: status
+  target_field: message
+  expression: 'active ? "Enabled" : "Disabled"'
+```
+
+### Object Construction
+
+Create nested objects with JSONata:
+
+```yaml
+- source_field: user
+  target_field: profile
+  expression: |
+    {
+      "fullName": $uppercase(firstName & " " & lastName),
+      "isAdult": age >= 18,
+      "email": $lowercase(email)
+    }
+```
+
+### Common Functions
+
+**String Functions:**
+| Function | Example | Result |
+|----------|---------|--------|
+| `$uppercase` | `$uppercase("hello")` | `"HELLO"` |
+| `$lowercase` | `$lowercase("WORLD")` | `"world"` |
+| `$substring` | `$substring("hello", 0, 3)` | `"hel"` |
+| `$length` | `$length("hello")` | `5` |
+| `$trim` | `$trim("  hello  ")` | `"hello"` |
+| `$contains` | `$contains("hello", "ell")` | `true` |
+
+**Math Functions:**
+| Function | Example | Result |
+|----------|---------|--------|
+| `$sum` | `$sum([1, 2, 3])` | `6` |
+| `$max` | `$max([1, 5, 3])` | `5` |
+| `$min` | `$min([1, 5, 3])` | `1` |
+| `$average` | `$average([1, 2, 3])` | `2` |
+| `$round` | `$round(3.7)` | `4` |
+
+### Combining with Field Filtering
+
+```yaml
+response_transformations:
+  - source_field: user
+    target_field: publicProfile
+    expression: |
+      {
+        "name": $uppercase(firstName & " " & lastName),
+        "memberSince": registrationDate
+      }
+    exclude_fields:
+      - firstName
+      - lastName
+      - password
+      - internal_id
+```
+
+### Expression vs Transformation
+
+When both `expression` and `transformation` are specified:
+- **Expression takes precedence**
+- Simple transformation is ignored
+- Warning is logged
+
+**Example:**
+```yaml
+- source_field: name
+  target_field: output
+  transformation: lower      # Ignored
+  expression: '$uppercase(name)'  # Used
+```
+
+### Error Handling
+
+Invalid expressions raise clear errors:
+
+```yaml
+expression: 'invalid {{ syntax'
+# Error: Invalid JSONata expression: invalid {{ syntax...
+```
+
+If an expression evaluation fails, the router logs the error and returns the original response (graceful degradation).
+
+### Performance Notes
+
+- Expressions are **compiled and cached** automatically
+- First use compiles the expression
+- Subsequent uses are fast (cached compiled expression)
+- Cache is keyed by expression string
+
+### Use Cases
+
+**1. Extract and Transform Nested Data**
+```yaml
+expression: 'Data.users.{"name": $uppercase(name), "age": age}'
+```
+
+**2. Filter and Aggregate**
+```yaml
+expression: '$sum($filter(items, function($i) { $i.price > 10 }).price)'
+```
+
+**3. Conditional Field Selection**
+```yaml
+expression: 'premium ? premiumFeatures : basicFeatures'
+```
+
+**4. Complex Data Reshaping**
+```yaml
+expression: |
+  {
+    "summary": {
+      "total": $sum(items.amount),
+      "count": $count(items),
+      "average": $sum(items.amount) / $count(items)
+    },
+    "items": items.{
+      "id": itemId,
+      "name": $uppercase(name)
+    }
+  }
+```
+
+### Best Practices
+
+1. **Keep expressions readable** - Use multiline YAML for complex expressions
+2. **Test expressions first** - Use https://try.jsonata.org/ to validate syntax
+3. **Handle missing data** - JSONata gracefully handles undefined fields (returns null)
+4. **Use for complex logic only** - Simple transformations can use built-in functions
+5. **Document complex expressions** - Add YAML comments explaining the logic
+
+**Example with comments:**
+```yaml
+response_transformations:
+  # Calculate order summary with totals and averages
+  - source_field: order
+    target_field: summary
+    expression: |
+      {
+        "totalAmount": $sum(items.price * items.quantity),
+        "itemCount": $count(items),
+        "avgItemPrice": $sum(items.price) / $count(items)
+      }
+```
+
 ## Request Transformations
 
 Transform data before sending to target connector.
