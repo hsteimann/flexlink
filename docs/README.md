@@ -48,6 +48,8 @@ FlexLink is an ETL (Extract, Transform, Load) middleware that provides a flexibl
 
 - [Mapping Summary](guides/MAPPING_SUMMARY.md) - Mapping configuration reference
 - [Story Workflow Guide](guides/STORY_WORKFLOW_GUIDE.md) - Development workflow for user stories
+- [Connector Development](guides/connector-development.md) - Developing a custom connector
+- [Data Transformation Guide](guides/transformations.md)- Defining simple data transformations or use JSONata
 
 ### How-To Guides
 

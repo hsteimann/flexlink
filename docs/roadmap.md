@@ -12,13 +12,14 @@ Authoritative roadmap reference for the FlexLink middleware project. Use this do
 - Transformation/mapping engine with declarative YAML configurations
 - File-to-REST/File-to-Database workflows, async file persistence, and format conversions
 - Dockerized deployment, FastAPI docs, health endpoints, and a 685-test suite with 71% coverage
+- JSONata expression engine for data transformation
 
 ## Upcoming: v0.5.0 (In Planning)
 
 Scope is being re-evaluated for the next minor release. Candidate items include:
 
 - Message queue connectors (RabbitMQ, Kafka, SQS) for event streaming
-- Advanced data mapping (JSONata expressions, custom Python modules)
+- Advanced data mapping with custom Python modules
 - Large file streaming, chunked processing, and additional formats (Parquet, Excel, Avro)
 - Enhanced observability (Prometheus metrics, OpenTelemetry tracing, dashboard templates)
 - Circuit breaker patterns, caching/response buffering, API rate limiting, and API key auth

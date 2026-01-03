@@ -306,11 +306,23 @@ response_transformations:
 
 ### Array Operations
 
+JSONata provides powerful array manipulation capabilities.
+
 **Sum Aggregation:**
 ```yaml
 - source_field: items
   target_field: total
   expression: '$sum(items.price)'
+```
+
+**Input:**
+```json
+{"items": [{"price": 10.50}, {"price": 25.00}, {"price": 15.75}]}
+```
+
+**Output:**
+```json
+{"items": [...], "total": 51.25}
 ```
 
 **Filter Array:**
@@ -320,11 +332,31 @@ response_transformations:
   expression: '$filter(products, function($p) { $p.price > 100 })'
 ```
 
+**Input:**
+```json
+{"products": [{"name": "A", "price": 50}, {"name": "B", "price": 150}, {"name": "C", "price": 200}]}
+```
+
+**Output:**
+```json
+{"products": [...], "expensive": [{"name": "B", "price": 150}, {"name": "C", "price": 200}]}
+```
+
 **Map Array:**
 ```yaml
 - source_field: items
   target_field: prices
   expression: 'items.price'
+```
+
+**Input:**
+```json
+{"items": [{"name": "Widget", "price": 99.99}, {"name": "Gadget", "price": 149.99}]}
+```
+
+**Output:**
+```json
+{"items": [...], "prices": [99.99, 149.99]}
 ```
 
 **Count Items:**
@@ -334,12 +366,67 @@ response_transformations:
   expression: '$count(items)'
 ```
 
+**Sort Array:**
+```yaml
+- source_field: products
+  target_field: sortedProducts
+  expression: '$sort(products, function($a, $b) { $a.price > $b.price })'
+```
+
+**Distinct Values:**
+```yaml
+- source_field: tags
+  target_field: uniqueTags
+  expression: '$distinct(tags)'
+```
+
+**Array Transformation (Map with Function):**
+```yaml
+- source_field: users
+  target_field: userSummaries
+  expression: |
+    users.{
+      "id": userId,
+      "name": $uppercase(firstName & " " & lastName),
+      "status": active ? "Active" : "Inactive"
+    }
+```
+
 ### Conditional Logic
 
+**Simple Ternary:**
 ```yaml
 - source_field: status
   target_field: message
   expression: 'active ? "Enabled" : "Disabled"'
+```
+
+**Nested Conditionals:**
+```yaml
+- source_field: user
+  target_field: accountStatus
+  expression: |
+    status = "active" ? "Active Account" :
+    status = "suspended" ? "Suspended" :
+    status = "pending" ? "Pending Approval" :
+    "Unknown Status"
+```
+
+**Conditional with Null Check:**
+```yaml
+- source_field: user
+  target_field: displayName
+  expression: 'name != null ? $uppercase(name) : "Anonymous"'
+```
+
+**Multiple Conditions:**
+```yaml
+- source_field: order
+  target_field: priority
+  expression: |
+    total > 1000 and status = "urgent" ? "High" :
+    total > 500 ? "Medium" :
+    "Low"
 ```
 
 ### Object Construction
@@ -360,23 +447,100 @@ Create nested objects with JSONata:
 ### Common Functions
 
 **String Functions:**
-| Function | Example | Result |
-|----------|---------|--------|
-| `$uppercase` | `$uppercase("hello")` | `"HELLO"` |
-| `$lowercase` | `$lowercase("WORLD")` | `"world"` |
-| `$substring` | `$substring("hello", 0, 3)` | `"hel"` |
-| `$length` | `$length("hello")` | `5` |
-| `$trim` | `$trim("  hello  ")` | `"hello"` |
-| `$contains` | `$contains("hello", "ell")` | `true` |
+| Function | Example | Result | Description |
+|----------|---------|--------|-------------|
+| `$uppercase` | `$uppercase("hello")` | `"HELLO"` | Convert to uppercase |
+| `$lowercase` | `$lowercase("WORLD")` | `"world"` | Convert to lowercase |
+| `$substring` | `$substring("hello", 0, 3)` | `"hel"` | Extract substring |
+| `$length` | `$length("hello")` | `5` | String length |
+| `$trim` | `$trim("  hello  ")` | `"hello"` | Remove whitespace |
+| `$contains` | `$contains("hello", "ell")` | `true` | Check if contains |
+| `$split` | `$split("a,b,c", ",")` | `["a","b","c"]` | Split string |
+| `$join` | `$join(["a","b"], ",")` | `"a,b"` | Join array |
+| `$replace` | `$replace("hello", "l", "r")` | `"herro"` | Replace text |
 
 **Math Functions:**
-| Function | Example | Result |
-|----------|---------|--------|
-| `$sum` | `$sum([1, 2, 3])` | `6` |
-| `$max` | `$max([1, 5, 3])` | `5` |
-| `$min` | `$min([1, 5, 3])` | `1` |
-| `$average` | `$average([1, 2, 3])` | `2` |
-| `$round` | `$round(3.7)` | `4` |
+| Function | Example | Result | Description |
+|----------|---------|--------|-------------|
+| `$sum` | `$sum([1, 2, 3])` | `6` | Sum of array |
+| `$max` | `$max([1, 5, 3])` | `5` | Maximum value |
+| `$min` | `$min([1, 5, 3])` | `1` | Minimum value |
+| `$average` | `$average([1, 2, 3])` | `2` | Average value |
+| `$round` | `$round(3.7)` | `4` | Round to integer |
+| `$floor` | `$floor(3.7)` | `3` | Round down |
+| `$ceil` | `$ceil(3.2)` | `4` | Round up |
+| `$abs` | `$abs(-5)` | `5` | Absolute value |
+
+**Array Functions:**
+| Function | Example | Result | Description |
+|----------|---------|--------|-------------|
+| `$count` | `$count([1, 2, 3])` | `3` | Array length |
+| `$append` | `$append([1, 2], 3)` | `[1,2,3]` | Add to array |
+| `$reverse` | `$reverse([1, 2, 3])` | `[3,2,1]` | Reverse array |
+| `$distinct` | `$distinct([1,2,2,3])` | `[1,2,3]` | Unique values |
+| `$sort` | `$sort([3, 1, 2])` | `[1,2,3]` | Sort array |
+
+**Type Functions:**
+| Function | Example | Result | Description |
+|----------|---------|--------|-------------|
+| `$number` | `$number("123")` | `123` | Convert to number |
+| `$string` | `$string(123)` | `"123"` | Convert to string |
+| `$boolean` | `$boolean("true")` | `true` | Convert to boolean |
+| `$exists` | `$exists(field)` | `true/false` | Check if field exists |
+| `$type` | `$type(123)` | `"number"` | Get data type |
+
+### Null Handling and Default Values
+
+JSONata gracefully handles null and undefined values, making it safe for production use.
+
+**Check for Null:**
+```yaml
+- source_field: user
+  target_field: email
+  expression: 'email != null ? $lowercase(email) : "no-email@example.com"'
+```
+
+**Using $exists:**
+```yaml
+- source_field: user
+  target_field: hasPhone
+  expression: '$exists(phone)'
+```
+
+**Default Values with Coalescing:**
+```yaml
+- source_field: user
+  target_field: displayName
+  # Use preferredName if exists, otherwise use firstName + lastName
+  expression: 'preferredName ? preferredName : firstName & " " & lastName'
+```
+
+**Safe Navigation:**
+```yaml
+- source_field: order
+  target_field: customerEmail
+  # Safely access nested fields that might not exist
+  expression: 'customer.contact.email ? customer.contact.email : "unknown"'
+```
+
+**Array with Missing Values:**
+```yaml
+- source_field: items
+  target_field: validPrices
+  # Filter out items without prices
+  expression: '$filter(items, function($i) { $exists($i.price) }).price'
+```
+
+**Null-Safe Calculations:**
+```yaml
+- source_field: order
+  target_field: total
+  # Only calculate if items exist and have prices
+  expression: |
+    $exists(items) and $count(items) > 0 ?
+      $sum(items[price != null].price) :
+      0
+```
 
 ### Combining with Field Filtering
 
@@ -462,6 +626,203 @@ expression: |
   }
 ```
 
+### Real-World Examples
+
+Complete YAML configurations for common scenarios.
+
+#### Example 1: E-Commerce Order Transformation
+
+Transform an order from a third-party API to your internal format.
+
+**Route Configuration:**
+```yaml
+# config/routes/orders.yaml
+- path: /api/orders
+  connector: shopify
+  target_path: /admin/api/2024-01/orders.json
+  response_transformations:
+    - source_field: order
+      target_field: processedOrder
+      expression: |
+        {
+          "orderId": $string(id),
+          "customer": {
+            "name": $uppercase(customer.first_name & " " & customer.last_name),
+            "email": $lowercase(customer.email),
+            "isVIP": total_price > 1000
+          },
+          "summary": {
+            "itemCount": $count(line_items),
+            "subtotal": $sum(line_items.price),
+            "total": total_price,
+            "currency": currency
+          },
+          "items": line_items.{
+            "sku": sku,
+            "name": $uppercase(title),
+            "quantity": quantity,
+            "price": price
+          },
+          "status": financial_status = "paid" ? "Confirmed" : "Pending"
+        }
+      exclude_fields:
+        - customer.default_address
+        - note_attributes
+```
+
+**Input (Shopify API Response):**
+```json
+{
+  "id": 123456,
+  "customer": {
+    "first_name": "john",
+    "last_name": "doe",
+    "email": "JOHN@EXAMPLE.COM"
+  },
+  "line_items": [
+    {"sku": "WIDGET-001", "title": "widget", "quantity": 2, "price": 99.99},
+    {"sku": "GADGET-001", "title": "gadget", "quantity": 1, "price": 149.99}
+  ],
+  "total_price": 349.97,
+  "currency": "USD",
+  "financial_status": "paid"
+}
+```
+
+**Output (Transformed):**
+```json
+{
+  "processedOrder": {
+    "orderId": "123456",
+    "customer": {
+      "name": "JOHN DOE",
+      "email": "john@example.com",
+      "isVIP": false
+    },
+    "summary": {
+      "itemCount": 2,
+      "subtotal": 249.98,
+      "total": 349.97,
+      "currency": "USD"
+    },
+    "items": [
+      {"sku": "WIDGET-001", "name": "WIDGET", "quantity": 2, "price": 99.99},
+      {"sku": "GADGET-001", "name": "GADGET", "quantity": 1, "price": 149.99}
+    ],
+    "status": "Confirmed"
+  }
+}
+```
+
+#### Example 2: User Analytics Aggregation
+
+Aggregate user activity data for analytics.
+
+**Route Configuration:**
+```yaml
+# config/routes/analytics.yaml
+- path: /api/analytics/users
+  connector: analytics_db
+  target_path: /query/user_events
+  response_transformations:
+    - source_field: events
+      target_field: analytics
+      expression: |
+        {
+          "totalEvents": $count(events),
+          "uniqueUsers": $count($distinct(events.userId)),
+          "eventsByType": $map(
+            $distinct(events.eventType),
+            function($type) {
+              {
+                "type": $type,
+                "count": $count($filter(events, function($e) { $e.eventType = $type }))
+              }
+            }
+          ),
+          "topUsers": $map(
+            $reverse($sort(
+              $map(
+                $distinct(events.userId),
+                function($uid) {
+                  {
+                    "userId": $uid,
+                    "eventCount": $count($filter(events, function($e) { $e.userId = $uid }))
+                  }
+                }
+              ),
+              function($a, $b) { $a.eventCount > $b.eventCount }
+            ))[0..4],
+            function($u) { $u.userId }
+          ),
+          "averageEventsPerUser": $count(events) / $count($distinct(events.userId))
+        }
+```
+
+#### Example 3: API Response Normalization
+
+Normalize different API response formats to a standard structure.
+
+**Route Configuration:**
+```yaml
+# config/routes/products.yaml
+- path: /api/products
+  connector: supplier_api
+  target_path: /v2/products
+  response_transformations:
+    - source_field: data
+      target_field: products
+      expression: |
+        $exists(items) ?
+          items.{
+            "id": productId ? productId : id,
+            "name": productName ? productName : name,
+            "price": price.amount ? price.amount : price,
+            "currency": price.currency ? price.currency : "USD",
+            "inStock": inventory > 0,
+            "categories": tags ? $split(tags, ",") : categories
+          } :
+          []
+```
+
+This handles multiple API response formats gracefully.
+
+#### Example 4: Data Enrichment
+
+Enrich data with calculated fields and lookups.
+
+**Route Configuration:**
+```yaml
+# config/routes/invoices.yaml
+- path: /api/invoices
+  connector: billing_system
+  target_path: /invoices
+  response_transformations:
+    - source_field: invoice
+      target_field: enrichedInvoice
+      expression: |
+        {
+          "invoiceNumber": number,
+          "customer": customer,
+          "lineItems": line_items,
+          "totals": {
+            "subtotal": $sum(line_items.(quantity * unitPrice)),
+            "tax": $sum(line_items.(quantity * unitPrice)) * 0.08,
+            "total": $sum(line_items.(quantity * unitPrice)) * 1.08,
+            "currency": "USD"
+          },
+          "metadata": {
+            "itemCount": $count(line_items),
+            "averageItemPrice": $sum(line_items.unitPrice) / $count(line_items),
+            "hasDiscount": $exists(discount_code),
+            "isPaid": status = "paid",
+            "daysOverdue": status = "overdue" ?
+              $number($substring($string($now()), 8, 10)) - $number($substring(due_date, 8, 10)) :
+              0
+          }
+        }
+```
+
 ### Best Practices
 
 1. **Keep expressions readable** - Use multiline YAML for complex expressions
@@ -483,6 +844,146 @@ response_transformations:
         "avgItemPrice": $sum(items.price) / $count(items)
       }
 ```
+
+### Troubleshooting JSONata Expressions
+
+Common issues and solutions when working with JSONata expressions.
+
+#### Expression Syntax Errors
+
+**Problem:** `Invalid JSONata expression: ... Error: Expected : before end of expression`
+
+**Solution:** Check for:
+- Missing colons in object construction: `{"key": value}` not `{"key" value}`
+- Unmatched brackets or braces: `{ }`, `[ ]`, `( )`
+- Invalid quote usage: Use double quotes `"` for strings, not single quotes
+
+**Test your expression:**
+```bash
+# Use the JSONata playground to validate syntax
+https://try.jsonata.org/
+```
+
+#### Null/Undefined Field Access
+
+**Problem:** Expression returns `null` or missing fields
+
+**Solution:** Use defensive programming:
+```yaml
+# Bad - May fail if field doesn't exist
+expression: 'customer.name'
+
+# Good - Provides default
+expression: 'customer.name ? customer.name : "Unknown"'
+
+# Better - Use $exists
+expression: '$exists(customer.name) ? customer.name : "Unknown"'
+```
+
+#### Array Operations Failing
+
+**Problem:** `Cannot read property of undefined` or unexpected results
+
+**Solution:** Validate array exists before operations:
+```yaml
+# Bad
+expression: '$sum(items.price)'
+
+# Good
+expression: '$exists(items) and $count(items) > 0 ? $sum(items.price) : 0'
+
+# Also handle missing price fields
+expression: |
+  $exists(items) and $count(items) > 0 ?
+    $sum(items[price != null].price) :
+    0
+```
+
+#### Expression Not Applied
+
+**Problem:** Transformation seems to be ignored
+
+**Checklist:**
+1. ✅ Check expression field is spelled correctly: `expression:` not `expresion:`
+2. ✅ Verify YAML indentation is correct
+3. ✅ Confirm JSONata library is installed: `pip install jsonata-python`
+4. ✅ Check logs for warnings about transformation conflicts
+5. ✅ If both `expression` and `transformation` are present, expression takes precedence
+
+#### Performance Issues
+
+**Problem:** Transformations are slow
+
+**Solutions:**
+```yaml
+# Bad - Nested loops can be slow
+expression: |
+  $map(users, function($u) {
+    $map(orders, function($o) { $o.userId = $u.id })
+  })
+
+# Good - Use efficient filtering
+expression: |
+  users.{
+    "user": $,
+    "orders": $filter(orders, function($o) { $o.userId = $.id })
+  }
+```
+
+**Check caching:**
+- Expressions are automatically cached after first compilation
+- If performance is still slow, the expression itself may be inefficient
+- Simplify complex nested operations
+
+#### Data Type Mismatches
+
+**Problem:** Calculations return unexpected results
+
+**Solution:** Explicitly convert types:
+```yaml
+# Bad - String concatenation instead of addition
+expression: 'price + tax'  # If price is "10" (string)
+
+# Good - Convert to number first
+expression: '$number(price) + $number(tax)'
+```
+
+#### Debugging Tips
+
+**Enable verbose logging:**
+```python
+import logging
+logging.getLogger("flexlink.core.transformation").setLevel(logging.DEBUG)
+```
+
+**Test expressions in isolation:**
+```python
+from flexlink.core.transformation import TransformationEngine
+from flexlink.models.transformation import TransformationRule
+
+rule = TransformationRule(
+    source_field="test",
+    target_field="result",
+    expression='$sum(items.price)'
+)
+
+engine = TransformationEngine([rule])
+test_data = {"items": [{"price": 10}, {"price": 20}]}
+
+import asyncio
+result = asyncio.run(engine.apply(test_data))
+print(result)
+```
+
+**Common Error Messages:**
+
+| Error Message | Cause | Solution |
+|--------------|-------|----------|
+| `Expected : before end of expression` | Syntax error in object literal | Check object construction syntax |
+| `Invalid JSONata expression` | Parse error | Validate in JSONata playground |
+| `Expression evaluation failed` | Runtime error | Add null checks, validate data |
+| `jsonata-python library not installed` | Missing dependency | Run `pip install jsonata-python` |
+| `Transformation failed for...` | Evaluation error | Check logs for specific error details |
 
 ## Request Transformations
 
