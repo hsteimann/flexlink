@@ -511,8 +511,8 @@ pool:
 
 - [Database Connector Overview](./database-connector.md)
 - [File Processing Guide](../../how-to/file-processing.md)
-- [Transformation Reference](../transformations.md)
-- [Validation Rules](../../configuration/validation.md)
+- [Transformation Reference](../transformation-engine.md)
+- [Validation Rules](../validation-system.md)
 
 ## Example Files
 

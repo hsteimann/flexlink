@@ -104,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Future Releases
 
-### [0.5.0] - In Planning
+### [0.5.0] - Planned, not implemented (the prototype ended at 0.4.2)
 
 Scope is being redefined. The plan currently targets:
 

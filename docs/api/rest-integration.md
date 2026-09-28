@@ -318,7 +318,7 @@ curl http://localhost:8000/api/v1/connectors
 
 ## Related Documentation
 
-- [Configuration Guide](../configuration/README.md)
-- [Transformation Reference](../features/transformations.md)
+- [Configuration Guide](../configuration/overview.md)
+- [Transformation Reference](../features/transformation-engine.md)
 - [Connector Development](../guides/connector-development.md)
 - [File Processing API](./file-processing.md)

@@ -386,10 +386,10 @@ See the `WebhookConnector` for webhook deliveries:
 
 ## Related Documentation
 
-- [Architecture Overview](../architecture/README.md)
-- [Configuration Guide](../configuration/README.md)
+- [Architecture Overview](../architecture/overview.md)
+- [Configuration Guide](../configuration/overview.md)
 - [Specialized Connectors](../features/connectors/README.md#specialized-connectors)
-- [Testing Guide](./testing.md)
+- [Testing](../../README.md#testing)
 
 ## Support
 

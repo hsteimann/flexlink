@@ -1,5 +1,7 @@
 # FlexLink Roadmap
 
+> **Status:** FlexLink is a completed prototype. It ended at v0.4.2 (January 2026); this roadmap shows the plan as it stood, and nothing beyond v0.4.2 is implemented.
+
 Authoritative roadmap reference for the FlexLink middleware project. Use this document as the single source of truth for current release scope and upcoming milestones.
 
 ## Current Release: v0.4.2
@@ -11,7 +13,7 @@ Authoritative roadmap reference for the FlexLink middleware project. Use this do
 - Pipeline orchestration with per-step error strategies, pagination, and data validation
 - Transformation/mapping engine with declarative YAML configurations
 - File-to-REST/File-to-Database workflows, async file persistence, and format conversions
-- Dockerized deployment, FastAPI docs, health endpoints, and a 685-test suite with 71% coverage
+- Dockerized deployment, FastAPI docs, health endpoints, and a 727-test suite with 70% coverage (716 passing, measured 2026-09-28)
 - JSONata expression engine for data transformation
 
 ## Upcoming: v0.5.0 (In Planning)

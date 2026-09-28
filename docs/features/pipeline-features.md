@@ -577,7 +577,7 @@ steps:
 
 - [Pipeline Orchestration Overview](../README.md#pipeline-orchestration)
 - [Connector Configuration](../configuration/connectors.md)
-- [Transformation and Mapping](./transformations.md)
+- [Transformation and Mapping](./transformation-engine.md)
 - [Troubleshooting Pipelines](../TROUBLESHOOTING.md)
 
 ## Example Pipelines

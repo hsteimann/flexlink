@@ -4,10 +4,12 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.127+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-685%20passing-brightgreen.svg)](./src/tests/)
-[![Coverage](https://img.shields.io/badge/coverage-71%25-brightgreen.svg)](./htmlcov/index.html)
+[![Status](https://img.shields.io/badge/status-completed%20prototype-lightgrey.svg)](#about-this-repository)
+[![Tests](https://img.shields.io/badge/tests-716%20of%20727%20passing-yellow.svg)](#about-this-repository)
+![Coverage](https://img.shields.io/badge/coverage-70%25-green.svg)
 
 - [FlexLink Middleware](#flexlink-middleware)
+  - [About this repository](#about-this-repository)
   - [Overview](#overview)
   - [Architecture](#architecture)
   - [Quick Start](#quick-start)
@@ -15,23 +17,33 @@
   - [Configuration](#configuration)
   - [Pipeline Orchestration](#pipeline-orchestration)
   - [API Documentation](#api-documentation)
-  - [File Processing Examples](#file-processing-examples)
+  - [File Processing & Integration Examples](#file-processing--integration-examples)
   - [Data Transformation](#data-transformation)
-  - [YAML Mapping Configurations](#yaml-mapping-configurations)
-  - [Connector Development Guide](#connector-development-guide)
+  - [Connector Development](#connector-development)
   - [Testing](#testing)
   - [Docker Deployment](#docker-deployment)
   - [Troubleshooting](#troubleshooting)
   - [Development](#development)
-  - [Roadmap](#roadmap)
+  - [Not implemented](#not-implemented)
   - [Contributing](#contributing)
   - [License](#license)
   - [Support](#support)
   - [Acknowledgments](#acknowledgments)
 
+## About this repository
+
+FlexLink is a **completed prototype**. It was built between December 2025 and January 2026 for a product-data integration project — product data from a PIM system, prices from a pricing service, passed on to other systems — and is published as it was left. It is not developed further.
+
+- **Anonymised.** The project was built for a client. Before publication, every client-specific detail was removed from the code and from the whole Git history: system instances are replaced with placeholders such as `yourcompany.viamedici.cloud` and `yourcompany-staging.priceedge.eu`, credentials with `<your-api-token>`, and a real product export with generated sample data. Internal planning and working files were removed as well. Authors and dates of the commits are unchanged.
+- **Sample data is generated.** Everything under `data/samples/` is fictional.
+- **Known failing tests.** Of 727 tests, 716 pass (measured on 2026-09-28, coverage 70 %). These fail, as the prototype was left:
+  - `src/tests/test_core/test_scheduler_service.py` — 7 failures and 3 errors in the scheduler tests.
+  - `src/tests/test_integration/test_xml_priceedge_pipeline.py::test_xml_priceedge_json_pipeline_execution` — the XML → PriceEdge transformation step fails with `'MappingRule' object has no attribute 'expression'`.
+- **License:** MIT, see [LICENSE](LICENSE).
+
 ## Overview
 
-FlexLink is a production-ready middleware platform that connects disparate systems through REST APIs and file-based interfaces. It provides a centralized integration hub with configurable connectors, data transformation, and multi-format file processing.
+FlexLink is a middleware prototype that connects disparate systems through REST APIs and file-based interfaces. It provides a centralized integration hub with configurable connectors, data transformation, and multi-format file processing.
 
 ### Key Features
 
@@ -46,19 +58,19 @@ FlexLink is a production-ready middleware platform that connects disparate syste
 - **Request Routing**: Pattern-based routing with path parameters and wildcard support
 - **Batch Ingestion**: Upload files → Transform records → Forward to REST connectors or databases
 - **Extensible Architecture**: Plugin-based connector system for easy integration additions
-- **Production Ready**: 685 tests (100% pass rate), comprehensive error handling, async-first design
+- **Tested**: 727 tests, 716 passing (see [About this repository](#about-this-repository)), comprehensive error handling, async-first design
 - **Docker Support**: Multi-stage builds, security hardening, health checks
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 
-### Latest Release
+### Final Version
 
-**Current Version: v0.4.2** (December 2025)
+**v0.4.2** (December 2025)
 
 Key highlights:
 - ✅ **Specialized Connectors**: Inheritance-based connector pattern with PriceEdgeConnector implementation
 - ✅ **Background Execution**: Async pipeline execution with TaskManager and run history tracking
 - ✅ **Web Dashboard**: Material Design 3 UI for pipeline monitoring and management
-- ✅ **Production Ready**: 685 tests (100% pass rate), 71% coverage
+- ✅ **Tests**: 727 tests, 70% coverage, 11 known failures (see above)
 
 For detailed version history and all changes, see **[CHANGELOG.md](./docs/CHANGELOG.md)**.
 
@@ -199,6 +211,8 @@ This architecture enables:
 - Batch import from legacy systems to modern REST APIs
 - Unified transformation pipeline for both file and REST data sources
 
+For detailed architecture diagrams, see [docs/architecture/flexlink-architecture-diagram.md](./docs/architecture/flexlink-architecture-diagram.md).
+
 ## Quick Start
 
 ### Prerequisites
@@ -215,7 +229,7 @@ This architecture enables:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/hsteimann/flexlink.git
 cd flexlink
 
 # Install dependencies
@@ -226,7 +240,7 @@ uv pip install -e ".[dev]"
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/hsteimann/flexlink.git
 cd flexlink
 
 # Create virtual environment
@@ -440,7 +454,18 @@ For detailed configuration examples and all options, see:
 
 ## Pipeline Orchestration
 
-### Overview
+### About this repository
+
+FlexLink is a **completed prototype**. It was built between December 2025 and January 2026 for a product-data integration project — product data from a PIM system, prices from a pricing service, passed on to other systems — and is published as it was left. It is not developed further.
+
+- **Anonymised.** The project was built for a client. Before publication, every client-specific detail was removed from the code and from the whole Git history: system instances are replaced with placeholders such as `yourcompany.viamedici.cloud` and `yourcompany-staging.priceedge.eu`, credentials with `<your-api-token>`, and a real product export with generated sample data. Internal planning and working files were removed as well. Authors and dates of the commits are unchanged.
+- **Sample data is generated.** Everything under `data/samples/` is fictional.
+- **Known failing tests.** Of 727 tests, 716 pass (measured on 2026-09-28, coverage 70 %). These fail, as the prototype was left:
+  - `src/tests/test_core/test_scheduler_service.py` — 7 failures and 3 errors in the scheduler tests.
+  - `src/tests/test_integration/test_xml_priceedge_pipeline.py::test_xml_priceedge_json_pipeline_execution` — the XML → PriceEdge transformation step fails with `'MappingRule' object has no attribute 'expression'`.
+- **License:** MIT, see [LICENSE](LICENSE).
+
+## Overview
 
 Pipeline orchestration enables declarative, multi-step ETL workflows defined in YAML. Pipelines chain Extract → Transform → Load operations with built-in retry logic, pagination, and error handling.
 
@@ -551,7 +576,7 @@ curl -X POST http://localhost:8000/api/v1/pipelines/order-sync/reload
 
 ### Advanced Pipeline Features
 
-Pipelines support advanced features for production-ready ETL workflows:
+Pipelines support advanced features for ETL workflows:
 
 - **Pagination**: Offset/limit, cursor-based, and page number strategies
 - **Batch Loading**: Group records for efficient bulk operations
@@ -667,7 +692,7 @@ response_transformations:
       }
 ```
 
-For comprehensive guide with examples, validation rules, and best practices, see **[Transformation Guide](./docs/features/transformations.md)**.
+For comprehensive guide with examples, validation rules, and best practices, see **[Transformation Guide](./docs/features/transformation-engine.md)**.
 
 ## Connector Development
 
@@ -683,7 +708,7 @@ For comprehensive guide with examples, see **[Connector Development Guide](./doc
 
 ## Testing
 
-FlexLink has comprehensive test coverage (685 tests, 71% coverage, 100% pass rate).
+FlexLink has 727 tests with 70% coverage; 716 pass, the known failures are listed under [About this repository](#about-this-repository).
 
 ### Running Tests
 
@@ -877,11 +902,9 @@ mypy src/flexlink/ && \
 pytest src/tests/ -v
 ```
 
-## Roadmap
+## Not implemented
 
-**What's Next for FlexLink?**
-
-We're continuously evolving FlexLink to meet enterprise integration needs. Here's a glimpse of what's coming:
+The prototype ended at v0.4.2. These were the next steps planned at the time; none of them is implemented.
 
 **v0.5.0 - In Planning:**
 - 🚀 **Message Queue Connectors**: RabbitMQ, Kafka, SQS for event streaming
@@ -897,31 +920,19 @@ We're continuously evolving FlexLink to meet enterprise integration needs. Here'
 - Advanced audit logging
 - Admin UI enhancements
 
-For the complete roadmap, feature timeline, and detailed planning, see **[docs/roadmap.md](./docs/roadmap.md)**.
+The plan as it stood is in **[docs/roadmap.md](./docs/roadmap.md)**.
 
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Write tests for your changes
-4. Ensure all tests pass (`pytest src/tests/ -v`)
-5. Run code quality checks (`ruff check src/ --fix && mypy src/flexlink/`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+FlexLink is a completed prototype and is not maintained, so pull requests will not be reviewed. You are welcome to fork it under the MIT license.
 
 ## License
 
-[Add your license here]
+MIT, see [LICENSE](LICENSE).
 
 ## Support
 
-For issues, questions, or contributions:
-
-- GitHub Issues: [Add repository URL]
-- Documentation: `http://localhost:8000/api/docs` (when running)
+There is no support for this prototype. When the app runs, its API documentation is served at `http://localhost:8000/api/docs`.
 
 ## Acknowledgments
 

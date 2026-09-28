@@ -597,8 +597,7 @@ Track and alert on:
 
 - [Webhook Connector Overview](./webhook-connector.md)
 - [File Processing Guide](../../how-to/file-processing.md)
-- [Transformation Reference](../transformations.md)
-- [Security Best Practices](../../guides/security.md)
+- [Transformation Reference](../transformation-engine.md)
 
 ## Example Files
 

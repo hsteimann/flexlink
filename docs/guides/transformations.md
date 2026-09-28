@@ -1445,5 +1445,5 @@ validation:
 
 - [Configuration Overview](../configuration/overview.md)
 - [Connector Examples](../configuration/connector-examples.md)
-- [Pipeline Features](./pipeline-features.md)
+- [Pipeline Features](../features/pipeline-features.md)
 - [API Documentation](../api/rest-integration.md)
