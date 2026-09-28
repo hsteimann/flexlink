@@ -34,6 +34,14 @@
 
 FlexLink is a **completed prototype**. It was built between December 2025 and January 2026 for a product-data integration project — product data from a PIM system, prices from a pricing service, passed on to other systems — and is published as it was left. It is not developed further.
 
+### How it came about
+
+A client project needed middleware: something to move product data between systems. The obvious answer is one of the large ETL and integration products. The question behind FlexLink was whether that is necessary, or whether a middleware and workflow environment built with minimal means could handle the basic data transfer of such a project.
+
+FlexLink is that minimal study: a working sketch of what a middleware product would later have to do — connectors, transformations, pipelines, scheduling, a run history. The next step built on it was the evaluation of [Windmill](https://www.windmill.dev) as a workflow platform. That part of the story is on [steimann.de](https://steimann.de).
+
+### What you should know
+
 - **Anonymised.** The project was built for a client. Before publication, every client-specific detail was removed from the code and from the whole Git history: system instances are replaced with placeholders such as `yourcompany.viamedici.cloud` and `yourcompany-staging.priceedge.eu`, credentials with `<your-api-token>`, and a real product export with generated sample data. Internal planning and working files were removed as well. Authors and dates of the commits are unchanged.
 - **Sample data is generated.** Everything under `data/samples/` is fictional.
 - **Known failing tests.** Of 727 tests, 716 pass (measured on 2026-09-28, coverage 70 %). These fail, as the prototype was left:
