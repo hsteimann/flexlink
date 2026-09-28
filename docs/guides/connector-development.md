@@ -396,4 +396,3 @@ See the `WebhookConnector` for webhook deliveries:
 For questions or issues with connector development:
 - Review existing connectors in `src/flexlink/connectors/`
 - Check the test suite for examples
-- See [CLAUDE.md](../../CLAUDE.md) for implementation patterns

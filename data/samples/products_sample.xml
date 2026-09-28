@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GENERATED SAMPLE DATA: fictional articles in the layout of a PIM article export. Not real product data. -->
+<items table="shop_item">
+  <item>
+    <field name="item_no">100001</field>
+    <field name="epim_id">EP-000101</field>
+    <field name="description">Nitrile examination gloves, size M, box of 100</field>
+    <field name="base_unit_of_measure">BOX</field>
+    <field name="unit_of_measure_code">BOX</field>
+    <field name="active">1</field>
+    <field name="vat_rate">19</field>
+    <field name="vendor_name">Example Supplier A</field>
+    <field name="gtin">8712345000017</field>
+    <field name="weight">0.62</field>
+    <field name="list_price">14.95</field>
+  </item>
+  <item>
+    <field name="item_no">100002</field>
+    <field name="epim_id">EP-000102</field>
+    <field name="description">Nitrile examination gloves, size L, box of 100</field>
+    <field name="base_unit_of_measure">BOX</field>
+    <field name="unit_of_measure_code">BOX</field>
+    <field name="active">1</field>
+    <field name="vat_rate">19</field>
+    <field name="vendor_name">Example Supplier A</field>
+    <field name="gtin">8712345000024</field>
+    <field name="weight">0.64</field>
+    <field name="list_price">14.95</field>
+  </item>
+  <item>
+    <field name="item_no">100003</field>
+    <field name="epim_id">EP-000103</field>
+    <field name="description">Surface disinfectant wipes, pack of 120</field>
+    <field name="base_unit_of_measure">PCS</field>
+    <field name="unit_of_measure_code">PCS</field>
+    <field name="active">1</field>
+    <field name="vat_rate">19</field>
+    <field name="vendor_name">Example Supplier B</field>
+    <field name="gtin">8712345000031</field>
+    <field name="weight">0.85</field>
+    <field name="list_price">9.40</field>
+  </item>
+  <item>
+    <field name="item_no">100004</field>
+    <field name="epim_id">EP-000104</field>
+    <field name="description">Dental bib, 2-ply, pack of 500</field>
+    <field name="base_unit_of_measure">PCS</field>
+    <field name="unit_of_measure_code">PCS</field>
+    <field name="active">1</field>
+    <field name="vat_rate">19</field>
+    <field name="vendor_name">Example Supplier B</field>
+    <field name="gtin">8712345000048</field>
+    <field name="weight">2.10</field>
+    <field name="list_price">22.10</field>
+  </item>
+  <item>
+    <field name="item_no">100005</field>
+    <field name="epim_id">EP-000105</field>
+    <field name="description">Saliva ejector, single use, pack of 100</field>
+    <field name="base_unit_of_measure">PCS</field>
+    <field name="unit_of_measure_code">PCS</field>
+    <field name="active">1</field>
+    <field name="vat_rate">19</field>
+    <field name="vendor_name">Example Supplier C</field>
+    <field name="gtin">8712345000055</field>
+    <field name="weight">0.30</field>
+    <field name="list_price">6.75</field>
+  </item>
+</items>

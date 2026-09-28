@@ -104,7 +104,6 @@ FlexLink follows a layered architecture:
 └──────────────────────────────────────────┘
 ```
 
-For detailed architecture diagrams, see [PRPs/flexlink-architecture-diagram.md](./PRPs/flexlink-architecture-diagram.md).
 
 ### Design Principles
 
@@ -846,7 +845,6 @@ flexlink/
 │   ├── samples/            # Sample files
 │   ├── uploads/            # Uploaded files (gitignored)
 │   └── downloads/          # Generated files (gitignored)
-├── PRPs/                   # Product Requirements
 ├── pyproject.toml          # Project dependencies
 ├── Dockerfile              # Docker image definition
 └── docker-compose.yml      # Docker Compose configuration
@@ -924,7 +922,6 @@ For issues, questions, or contributions:
 
 - GitHub Issues: [Add repository URL]
 - Documentation: `http://localhost:8000/api/docs` (when running)
-- Architecture Docs: [PRPs/flexlink-architecture-diagram.md](./PRPs/flexlink-architecture-diagram.md)
 
 ## Acknowledgments
 

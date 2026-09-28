@@ -16,7 +16,7 @@ steps:
     method: GET
     path: /read
     params:
-      file_path: data/samples/article_deu_DEU.xml
+      file_path: data/samples/products_sample.xml
       format: xml
     on_error: fail_pipeline
     description: "Parse XML file containing product information"

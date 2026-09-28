@@ -40,8 +40,6 @@ dmypy.json
 .gitattributes
 
 # Documentation and development files
-PRPs/
-PRPs-agentic-eng-development/
 *.md
 !README.md
 EVALUATION-SUMMARY.md

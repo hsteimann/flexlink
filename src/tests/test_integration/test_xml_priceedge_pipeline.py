@@ -14,7 +14,7 @@ from flexlink.core.transformation import TransformationEngine
 @pytest.fixture
 def sample_xml_content():
     """Load sample XML product data."""
-    xml_path = Path("data/samples/article_deu_DEU.xml")
+    xml_path = Path("data/samples/products_sample.xml")
     if not xml_path.exists():
         # Fallback: use sample.xml
         xml_path = Path("data/samples/sample.xml")

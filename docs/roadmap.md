@@ -34,6 +34,5 @@ Scope is being re-evaluated for the next minor release. Candidate items include:
 
 ## References
 
-- Product Requirement Plans (PRPs): see `PRPs/active/flexlink-middleware-mvp-PHASE2.md` for detailed breakdowns
 - Main README: [`../README.md`](../README.md) – include only summary bullets and link back here
 - Architecture Docs: when referencing roadmap items, link to this file instead of restating bullet lists

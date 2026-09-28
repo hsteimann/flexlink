@@ -106,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### [0.5.0] - In Planning
 
-Scope is being redefined. See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](../PRPs/active/flexlink-middleware-mvp-PHASE2.md) for the evolving plan, which currently targets:
+Scope is being redefined. The plan currently targets:
 
 - Message queue connectors (RabbitMQ, Kafka) for event streaming
 - Advanced data mapping (JSONata expressions)
@@ -117,7 +117,6 @@ Scope is being redefined. See [PRPs/active/flexlink-middleware-mvp-PHASE2.md](..
 
 ### Enterprise Features
 
-See [PRPs/flexlink-middleware-mvp-ENHANCEMENTS.md](../PRPs/flexlink-middleware-mvp-ENHANCEMENTS.md):
 
 - Job scheduling (cron-based)
 - State persistence (SQLite/PostgreSQL)

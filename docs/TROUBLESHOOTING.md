@@ -813,7 +813,6 @@ If you're still experiencing issues:
 1. **Check documentation:**
    - [README.md](../README.md)
    - [docs/](../docs/)
-   - [CLAUDE.md](../CLAUDE.md) (developer context)
 
 2. **Review logs carefully:**
    - Error messages often contain the solution

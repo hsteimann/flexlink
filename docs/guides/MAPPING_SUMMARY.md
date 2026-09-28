@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PRP now includes a **comprehensive configuration-driven data mapping framework** with two complementary approaches:
+FlexLink includes a **comprehensive configuration-driven data mapping framework** with two complementary approaches:
 
 1. **YAML DSL** - Simple, declarative mappings for common transformations
 2. **JSONata** - Powerful expression language for complex transformations
@@ -283,4 +283,3 @@ def test_jsonata_mapping():
 - **JSONata Docs**: https://docs.jsonata.org/
 - **JSONata Playground**: https://try.jsonata.org/
 - **YAML Spec**: https://yaml.org/spec/
-- **PRP Location**: `PRPs/flexlink-middleware-mvp.md`

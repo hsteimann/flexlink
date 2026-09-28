@@ -130,7 +130,7 @@ steps:
     type: extract
     connector: file
     params:
-      file_path: data/samples/article_deu_DEU.xml
+      file_path: data/samples/products_sample.xml
       format: xml
 
   # Step 2: Transform for PriceEdge query
@@ -576,7 +576,6 @@ class ShopwareConnector(RestConnector):
 
 **See Also:**
 - [Creating Specialized Connectors](../features/connectors/README.md#creating-specialized-connectors)
-- [Connector Inheritance Model](../../PRPs/task/prp_connector_inheritance_model.md)
 
 ## Changelog
 
